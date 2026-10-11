@@ -34,3 +34,10 @@ export function parseAmount(str) {
   const n = parseFloat(String(str).replace(/\s/g, '').replace(',', '.'))
   return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null
 }
+
+// «1250000,5» → «1 250 000,5»: разряды через пробел, одна запятая, не больше двух знаков копеек
+export function groupAmount(str) {
+  const [int, ...rest] = String(str).replace(/\./g, ',').replace(/[^\d,]/g, '').split(',')
+  const grouped = int.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+  return rest.length ? `${grouped},${rest.join('').slice(0, 2)}` : grouped
+}

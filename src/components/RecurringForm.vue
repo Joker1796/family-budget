@@ -5,6 +5,7 @@ import { isoMonth, parseAmount } from '../format'
 import Segmented from './Segmented.vue'
 import Select from './Select.vue'
 import DateField from './DateField.vue'
+import AmountInput from './AmountInput.vue'
 
 const KINDS = [
   { value: 'fixed', label: 'Фиксированная' },
@@ -74,7 +75,7 @@ function remove() {
 
     <Segmented v-model="form.kind" :options="KINDS" />
     <label>{{ form.kind === 'fixed' ? 'Сумма' : 'Примерная сумма (пока нет истории оплат)' }}
-      <input v-model="form.amount" inputmode="decimal" placeholder="0 ₽" />
+      <AmountInput v-model="form.amount" placeholder="0 ₽" />
     </label>
 
     <div class="field">Периодичность

@@ -6,6 +6,7 @@ import { isoDate, parseAmount, money } from '../format'
 import CatIcon from './CatIcon.vue'
 import Segmented from './Segmented.vue'
 import DateField from './DateField.vue'
+import AmountInput from './AmountInput.vue'
 
 const TYPES = [
   { value: 'expense', label: 'Расход' },
@@ -130,7 +131,7 @@ function remove() {
     <p v-if="draft" class="draft-title">Оплата: {{ draft.comment }}</p>
     <Segmented v-else :model-value="type" :options="TYPES" @update:model-value="setType" />
 
-    <input ref="amountInput" v-model="amountStr" class="amount" :class="type" inputmode="decimal" enterkeyhint="done" placeholder="0 ₽" @input="justSaved = false" @keyup.enter="save" />
+    <AmountInput ref="amountInput" v-model="amountStr" class="amount" :class="type" enterkeyhint="done" placeholder="0 ₽" @input="justSaved = false" @keyup.enter="save" />
 
     <div class="row">
       <input v-model="comment" placeholder="Комментарий" @keyup.enter="save" />
