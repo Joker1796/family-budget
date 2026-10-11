@@ -10,8 +10,7 @@ const showCategories = ref(false)
 
 async function save() {
   form.apiUrl = form.apiUrl.trim()
-  form.author = form.author.trim()
-  if (!form.apiUrl || !form.secret || !form.author) {
+  if (!form.apiUrl || !form.secret) {
     status.value = 'Заполните все поля'
     return
   }
@@ -38,7 +37,6 @@ async function resync() {
   <Transition :name="showCategories ? 'slide-left' : 'slide-right'" mode="out-in">
   <CategoriesView v-if="showCategories" @back="showCategories = false" />
   <section v-else class="settings">
-    <label>Ваше имя<input v-model="form.author" placeholder="Например, Женя" /></label>
     <label>Адрес Apps Script<input v-model="form.apiUrl" placeholder="https://script.google.com/macros/s/…/exec" /></label>
     <label>Семейный пароль<input v-model="form.secret" type="password" /></label>
     <button class="primary" @click="save">Сохранить и проверить</button>

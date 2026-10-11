@@ -109,9 +109,6 @@ button.link { border: none; background: none; padding: 0 0 0 8px; color: var(--a
 .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 12px 0; }
 .summary div { background: var(--card); border: 1px solid var(--border); padding: 10px; display: flex; flex-direction: column; gap: 2px; }
 .summary b { font-size: 15px; }
-.chips { display: flex; gap: 6px; overflow-x: auto; }
-.chips button { padding: 6px 14px; font-size: 13px; white-space: nowrap; color: var(--muted); }
-.chips button.active { border-color: var(--accent-text); color: var(--accent-text); }
 .tx { width: 100%; display: flex; align-items: center; gap: 14px; text-align: left; border: none; border-bottom: 1px solid var(--border); padding: 12px 4px; background: none; }
 /* иконка категории на плашке */
 .cat-icon { display: inline-flex; align-items: center; justify-content: center; flex: none; }

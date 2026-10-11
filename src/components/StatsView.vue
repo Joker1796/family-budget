@@ -23,7 +23,6 @@ function groupBy(type, key) {
 }
 
 const byCategory = computed(() => groupBy('expense', 'category'))
-const byAuthor = computed(() => groupBy('expense', 'author'))
 const income = computed(() => groupBy('income', 'category'))
 const obligatory = computed(() =>
   monthTxs.value.filter((t) => t.type === 'expense' && t.recurringId).reduce((s, t) => s + t.amount, 0),
@@ -47,14 +46,6 @@ const obligatory = computed(() =>
         </div>
         <div class="bar"><div :style="{ width: r.share * 100 + '%' }" /></div>
       </div>
-
-      <template v-if="byAuthor.rows.length > 1">
-        <h2>Кто тратил</h2>
-        <div v-for="r in byAuthor.rows" :key="r.name" class="bar-row">
-          <div class="bar-label"><span>{{ r.name }}</span><span>{{ money(r.sum) }}</span></div>
-          <div class="bar"><div :style="{ width: r.share * 100 + '%' }" /></div>
-        </div>
-      </template>
 
       <h2>Доходы <span class="income">{{ money(income.total) }}</span></h2>
       <div v-for="r in income.rows" :key="r.name" class="bar-label plain">

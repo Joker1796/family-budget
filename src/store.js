@@ -25,7 +25,7 @@ if (load('fb.schema', 1) !== SCHEMA) {
 }
 
 export const state = reactive({
-  settings: load(KEYS.settings, { apiUrl: '', secret: '', author: '' }),
+  settings: load(KEYS.settings, { apiUrl: '', secret: '' }),
   // id -> запись; удалённые хранятся с deleted: true
   txs: load(KEYS.txs, {}),
   recs: load(KEYS.recs, {}),
@@ -41,7 +41,7 @@ for (const [field, key] of Object.entries(KEYS)) {
   watch(() => state[field], (v) => localStorage.setItem(key, JSON.stringify(v)), { deep: true })
 }
 
-export const isConfigured = computed(() => Boolean(state.settings.apiUrl && state.settings.secret && state.settings.author))
+export const isConfigured = computed(() => Boolean(state.settings.apiUrl && state.settings.secret))
 
 const alive = (map) => Object.values(map).filter((x) => !x.deleted)
 
@@ -84,7 +84,7 @@ function put(kind, defaults, fields) {
 }
 
 export function saveTx(fields) {
-  const tx = put('tx', { author: state.settings.author, comment: '', recurringId: '', period: '' }, fields)
+  const tx = put('tx', { comment: '', recurringId: '', period: '' }, fields)
   sync()
   return tx
 }
