@@ -10,6 +10,15 @@
     <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="icon" href="/logo.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
+    <script>
+      // светлая тема — до первой отрисовки, без вспышки тёмной
+      if (localStorage.getItem('fb.theme') === 'light') {
+        document.documentElement.dataset.theme = 'light'
+        document.querySelector('meta[name="theme-color"]').content = '#fbf3ee'
+        // тёмные буквы в строке состояния iPhone (читается при запуске с домашнего экрана)
+        document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]').content = 'default'
+      }
+    </script>
     <title>Семейный бюджет</title>
   </head>
   <body>

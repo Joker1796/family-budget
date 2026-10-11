@@ -49,9 +49,11 @@ npm run icons   # PNG-иконки из public/logo.svg
 
 ## Дизайн
 
-- Только тёмная тема, акцент — морская волна (`--accent #2b7f7a`, `--accent-text #6cc3ba`), палитра в `:root` в `src/style.css`.
+- Основная тема тёмная, акцент — морская волна (`--accent #2b7f7a`, `--accent-text #6cc3ba`), палитра в `:root` в `src/style.css`.
+  Есть светлая кремово-розовая (`:root[data-theme='light']`) — выбирается в Настройках, хранится на телефоне (`fb.theme`, `src/theme.js`), не синхронизируется.
+  Цвета только через переменные (`--on-accent`, `--selected`, `--placeholder`, `--shadow` и т.д.), без захардкоженных `#fff`.
 - Никаких скруглений (`border-radius: 0` везде).
-- Никаких системных выпадашек: только свои `Select` / `DateField`. Поля ввода — 16px (иначе iOS зумит).
+- Никаких системных выпадашек: только свои `Select` / `DateField`. Суммы — через `AmountInput` (разряды пробелами по мере ввода). Поля ввода — 16px (иначе iOS зумит).
 - Всё, что движется, — плавно: переменные `--ease`, `--fast`, `--normal`; классы переходов `slide-left/right`, `fade`, `pop`, `expand`, `list`, `drop`. Учитывается `prefers-reduced-motion`.
 
 ## Правила

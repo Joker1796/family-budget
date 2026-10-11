@@ -1,7 +1,9 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import { state, sync } from '../store'
+import { theme, THEMES } from '../theme'
 import CategoriesView from './CategoriesView.vue'
+import Segmented from './Segmented.vue'
 
 const emit = defineEmits(['done'])
 const form = reactive({ ...state.settings })
@@ -43,6 +45,7 @@ async function resync() {
     <p v-if="status" class="flash">{{ status }}</p>
 
     <hr />
+    <div class="field">Тема на этом телефоне<Segmented v-model="theme" :options="THEMES" /></div>
     <button @click="showCategories = true">Категории расходов и доходов</button>
     <hr />
     <p class="hint">

@@ -1,4 +1,4 @@
-/* Только тёмная тема. Акцент — морская волна, расход/доход приглушённые. */
+/* Основная тема — тёмная, акцент — морская волна; расход/доход приглушённые. Светлая — ниже, [data-theme='light']. */
 :root {
   --bg: #0e1517;
   --card: #162125;
@@ -10,6 +10,14 @@
   --accent-text: #6cc3ba; /* акцентный текст и обводки */
   --expense: #e08a7e;
   --income: #a3cf8f;
+  --on-accent: #fff; /* текст на заливке акцентом */
+  --selected: color-mix(in srgb, var(--accent) 35%, var(--card)); /* выбранная плашка */
+  --on-selected: #fff;
+  --placeholder: #5d7174;
+  --shadow: rgb(0 0 0 / 0.5);
+  /* категориальная палитра диаграмм: порядок фиксирован, проверена валидатором на тёмной плашке */
+  --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500; --series-5: #d55181; --series-6: #008300;
+  --series-other: #5f7477;
   /* движение: мягкое замедление в конце */
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --fast: 160ms;
@@ -19,6 +27,33 @@
   color: var(--text);
   background: var(--bg);
   -webkit-tap-highlight-color: transparent;
+}
+
+/* светлая тема: нежная, кремово-розовая */
+:root[data-theme='light'] {
+  --bg: #fbf3ee;
+  --card: #fffaf7;
+  --card-hover: #f8e6e4;
+  --border: #eed8d4;
+  --text: #4b3237;
+  --muted: #8f6f75;
+  --accent: #c47790; /* пудрово-розовый */
+  --accent-text: #b25d78;
+  --expense: #b85c55;
+  --income: #5f8a4f;
+  --on-accent: #fff;
+  --selected: #fae1e5;
+  --on-selected: #8f3f5a;
+  --placeholder: #cbb3b4;
+  --shadow: rgb(120 70 80 / 0.16);
+  /* те же оттенки, подобранные под светлый фон; часть светлее 3:1 — поэтому под кругом всегда подписи с суммами */
+  --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100; --series-5: #e87ba4; --series-6: #008300;
+  --series-other: #b9a3a6;
+  color-scheme: light;
+}
+/* при переключении темы цвета перетекают */
+.theme-switching, .theme-switching * {
+  transition: background-color var(--normal) var(--ease), border-color var(--normal) var(--ease), color var(--normal) var(--ease) !important;
 }
 
 * { box-sizing: border-box; border-radius: 0; }
@@ -31,12 +66,12 @@ button {
 }
 button:active:not(:disabled) { background: var(--card-hover); transform: scale(0.97); }
 button:disabled { opacity: 0.35; }
-button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
 button.danger { color: var(--expense); }
 input { width: 100%; padding: 12px; border: 1px solid var(--border); background: var(--card); min-width: 0; outline: none; -webkit-appearance: none; }
 input { transition: border-color var(--fast) var(--ease); }
 input:focus { border-color: var(--accent-text); }
-input::placeholder { color: #5d7174; }
+input::placeholder { color: var(--placeholder); }
 /* 16px — меньше iOS приближает страницу при фокусе; и одинаковая высота с выпадашками */
 input { font-size: 16px; color: var(--text); line-height: 20px; }
 .dropdown-trigger { line-height: 20px; }
@@ -68,7 +103,7 @@ small { color: var(--muted); }
 .tabbar button.active { color: var(--accent-text); }
 .tab-icon { display: flex; align-items: center; justify-content: center; height: 26px; }
 /* центральная кнопка «Добавить» */
-.tabbar .add-tab .tab-icon { width: 52px; height: 40px; margin-top: -14px; background: var(--accent); color: #fff; }
+.tabbar .add-tab .tab-icon { width: 52px; height: 40px; margin-top: -14px; background: var(--accent); color: var(--on-accent); }
 .tabbar .add-tab.active .tab-icon { background: var(--accent-text); color: var(--bg); }
 
 /* добавление */
@@ -90,15 +125,15 @@ small { color: var(--muted); }
 .row > .date-field { flex: none; min-width: 140px; }
 .categories { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .categories button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; font-size: 13px; }
-.categories button.active { background: color-mix(in srgb, var(--accent) 35%, var(--card)); border-color: var(--accent-text); box-shadow: inset 0 0 0 1px var(--accent-text); color: #fff; }
-.categories button.active .cat-icon { color: #fff; }
+.categories button.active { background: var(--selected); border-color: var(--accent-text); box-shadow: inset 0 0 0 1px var(--accent-text); color: var(--on-selected); }
+.categories button.active .cat-icon { color: var(--on-selected); }
 /* предложение отметить запись как оплату регулярного платежа */
 .rec-links { display: flex; flex-direction: column; gap: 6px; padding-top: 10px; }
 .rec-links > small { font-size: 13px; }
 .rec-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .rec-chips button { display: flex; align-items: baseline; gap: 8px; padding: 9px 12px; font-size: 14px; }
 .rec-chips button small { font-size: 12px; }
-.rec-chips button.active { background: color-mix(in srgb, var(--accent) 35%, var(--card)); border-color: var(--accent-text); color: #fff; }
+.rec-chips button.active { background: var(--selected); border-color: var(--accent-text); color: var(--on-selected); }
 .rec-chips button.active small { color: var(--text); }
 /* кнопка сохранения всегда на виду над нижним меню */
 .save-bar { position: sticky; bottom: calc(72px + env(safe-area-inset-bottom)); z-index: 2; margin-top: 6px; padding: 6px 0; background: var(--bg); }
@@ -135,10 +170,40 @@ button.link { border: none; background: none; padding: 0 0 0 8px; color: var(--a
 /* полосы растут от нуля при показе месяца и плавно меняют длину */
 .bar div { height: 100%; background: var(--accent); transform-origin: left; animation: grow 700ms var(--ease) both; transition: width var(--normal) var(--ease); }
 @keyframes grow { from { transform: scaleX(0); } }
+.stats-tabs { margin-top: 12px; }
+
+/* кольцевая диаграмма доходов */
+.donut { position: relative; width: min(240px, 70vw); margin: 4px auto 16px; }
+.donut svg { display: block; width: 100%; transform: rotate(-90deg); }
+.donut-seg {
+  fill: none; stroke-width: 16; cursor: pointer;
+  animation: donut-in 700ms var(--ease) both;
+  transition: stroke-dasharray var(--normal) var(--ease), stroke-dashoffset var(--normal) var(--ease),
+    stroke-width var(--normal) var(--ease), opacity var(--normal) var(--ease);
+}
+/* сегмент «прорастает» по кругу от своего начала */
+@keyframes donut-in { from { stroke-dasharray: 0 100; } }
+.donut.picked .donut-seg { opacity: 0.35; }
+.donut.picked .donut-seg.active { opacity: 1; stroke-width: 19; }
+.donut-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; text-align: center; }
+.donut-center > div { display: flex; flex-direction: column; align-items: center; gap: 2px; max-width: 55%; }
+.donut-center small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.donut-center b { font-size: 18px; }
+.legend-row {
+  width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; font-size: 14px;
+  border: none; border-bottom: 1px solid var(--border); background: none; padding: 10px 4px;
+}
+.legend-row.dim { opacity: 0.5; }
+.legend-row.active { background: var(--card-hover); }
+.legend-row .with-icon { flex: 1; min-width: 0; flex-wrap: wrap; }
+.legend-row .with-icon small { flex-basis: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.legend-sum { white-space: nowrap; }
+.swatch { flex: none; width: 12px; height: 12px; }
 
 /* настройки */
 .settings { display: flex; flex-direction: column; gap: 14px; }
-.settings label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
+.settings label, .settings .field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
+.settings .field .segmented { font-size: 15px; }
 .settings hr { width: 100%; border: none; border-top: 1px solid var(--border); }
 .hint { font-size: 13px; color: var(--muted); margin: 0; }
 
@@ -169,13 +234,13 @@ button.link { border: none; background: none; padding: 0 0 0 8px; color: var(--a
 .dropdown-trigger { width: 100%; display: flex; align-items: center; gap: 8px; text-align: left; padding: 12px; }
 .dropdown-trigger > .value { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dropdown-trigger .cat-icon { color: var(--accent-text); }
-.dropdown-trigger .placeholder { color: #5d7174; }
+.dropdown-trigger .placeholder { color: var(--placeholder); }
 .dropdown-chevron { flex: none; color: var(--muted); transition: transform var(--normal) var(--ease); }
 .dropdown.open .dropdown-trigger { border-color: var(--accent-text); }
 .dropdown.open .dropdown-chevron { transform: rotate(180deg); }
 .dropdown-panel {
   position: absolute; top: calc(100% + 4px); left: 0; z-index: 20; min-width: 100%;
-  background: var(--card); border: 1px solid var(--accent-text); box-shadow: 0 12px 32px rgb(0 0 0 / 0.5);
+  background: var(--card); border: 1px solid var(--accent-text); box-shadow: 0 12px 32px var(--shadow);
   transform-origin: top; scroll-margin-bottom: 150px;
 }
 .dropdown-panel.right { left: auto; right: 0; }
@@ -198,7 +263,7 @@ button.link { border: none; background: none; padding: 0 0 0 8px; color: var(--a
 .calendar-grid.months button { height: 46px; }
 .calendar-grid button.weekend { color: var(--expense); }
 .calendar-grid button.today { border-color: var(--border); }
-.calendar-grid button.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.calendar-grid button.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
 .calendar-foot { display: flex; gap: 4px; margin-top: 6px; }
 .calendar-foot button { flex: 1; padding: 9px; font-size: 13px; }
 
