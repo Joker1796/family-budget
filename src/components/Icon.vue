@@ -1,0 +1,27 @@
+<script setup>
+// Иконки интерфейса — тот же набор Lucide, что и у категорий
+import {
+  Plus, List, CalendarDays, ChartPie, SlidersHorizontal, RefreshCw,
+  ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2,
+} from 'lucide-vue-next'
+
+defineProps({ name: { type: String, required: true }, size: { type: Number, default: 24 } })
+
+const icons = {
+  plus: Plus,
+  list: List,
+  calendar: CalendarDays,
+  chart: ChartPie,
+  settings: SlidersHorizontal,
+  sync: RefreshCw,
+  left: ChevronLeft,
+  right: ChevronRight,
+  up: ChevronUp,
+  down: ChevronDown,
+  trash: Trash2,
+}
+</script>
+
+<template>
+  <component :is="icons[name]" :size="size" :stroke-width="2" aria-hidden="true" />
+</template>
