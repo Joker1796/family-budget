@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { categoriesOf, saveTx, deleteTx } from '../store'
+import { categoriesOf, recurring, saveTx, deleteTx } from '../store'
+import { estimate } from '../recurring'
 import { isoDate, parseAmount, money } from '../format'
 import CatIcon from './CatIcon.vue'
 import Segmented from './Segmented.vue'
@@ -22,6 +23,8 @@ const amountStr = ref(init.amount ? String(init.amount) : '')
 const category = ref(init.category ?? '')
 const comment = ref(init.comment ?? '')
 const date = ref(init.date ?? isoDate())
+// регулярный платёж, оплатой которого считается запись (для draft он уже задан)
+const linked = ref(props.draft ? '' : (init.recurringId ?? ''))
 const flash = ref('')
 const saved = ref(null) // последняя сохранённая запись — для «Отменить»
 const justSaved = ref(false) // кнопка на секунду показывает «Сохранено»
@@ -30,6 +33,11 @@ let flashTimer, savedTimer
 
 const categories = computed(() => categoriesOf(type.value))
 const amount = computed(() => parseAmount(amountStr.value))
+// у выбранной категории есть регулярные платежи — предлагаем отметить запись как оплату
+const payments = computed(() =>
+  props.draft || type.value !== 'expense' ? [] : recurring.value.filter((r) => r.category === category.value),
+)
+const linkedRec = computed(() => payments.value.find((r) => r.id === linked.value))
 const ready = computed(() => Boolean(amount.value && category.value))
 
 // подсказка на кнопке: чего не хватает или что именно сохранится
@@ -38,7 +46,7 @@ const saveLabel = computed(() => {
   if (!amount.value && !category.value) return 'Введите сумму и выберите категорию'
   if (!amount.value) return 'Введите сумму'
   if (!category.value) return 'Выберите категорию'
-  return `Сохранить ${money(amount.value)}`
+  return linkedRec.value ? `Оплатить «${linkedRec.value.name}» ${money(amount.value)}` : `Сохранить ${money(amount.value)}`
 })
 
 onMounted(() => !props.tx && amountInput.value?.focus())
@@ -46,13 +54,29 @@ onMounted(() => !props.tx && amountInput.value?.focus())
 function setType(t) {
   type.value = t
   category.value = ''
+  linked.value = ''
 }
 
 // повторный тап снимает выбор
 function pick(name) {
   justSaved.value = false
   category.value = category.value === name ? '' : name
+  unlink()
   if (!amount.value) amountInput.value?.focus()
+}
+
+// тап по платежу подставляет его сумму и название, повторный — отвязывает
+function link(rec) {
+  if (linked.value === rec.id) return unlink()
+  unlink()
+  linked.value = rec.id
+  if (!amount.value) amountStr.value = String(estimate(rec))
+  if (!comment.value.trim()) comment.value = rec.name
+}
+
+function unlink() {
+  if (linkedRec.value && comment.value === linkedRec.value.name) comment.value = ''
+  linked.value = ''
 }
 
 function showFlash(text, tx = null) {
@@ -74,15 +98,17 @@ function save() {
   const fields = { type: type.value, amount: amount.value, category: category.value, comment: comment.value.trim(), date: date.value }
   if (props.tx) fields.id = props.tx.id
   if (props.draft) Object.assign(fields, { recurringId: props.draft.recurringId, period: props.draft.period })
+  else Object.assign(fields, { recurringId: linked.value, period: linked.value ? date.value.slice(0, 7) : '' })
   const tx = saveTx(fields)
   if (props.tx || props.draft) return emit('saved')
-  showFlash(`Сохранено: ${tx.category}, ${money(tx.amount)}`, tx)
+  showFlash(`Сохранено: ${linkedRec.value?.name ?? tx.category}, ${money(tx.amount)}`, tx)
   clearTimeout(savedTimer)
   justSaved.value = true
   savedTimer = setTimeout(() => (justSaved.value = false), 1500)
   amountStr.value = ''
   comment.value = ''
   category.value = ''
+  linked.value = ''
   amountInput.value?.focus()
   emit('saved')
 }
@@ -126,6 +152,19 @@ function remove() {
           <CatIcon :icon="c.icon" :size="32" />{{ c.name }}
         </button>
       </div>
+    </Transition>
+
+    <Transition name="expand">
+      <div v-if="payments.length" class="expand"><div>
+        <div class="rec-links">
+          <small>Это оплата регулярного платежа?</small>
+          <div class="rec-chips">
+            <button v-for="r in payments" :key="r.id" :class="{ active: linked === r.id }" @click="link(r)">
+              ↻ {{ r.name }}<small>{{ r.kind === 'variable' ? '~' : '' }}{{ money(estimate(r)) }}</small>
+            </button>
+          </div>
+        </div>
+      </div></div>
     </Transition>
 
     <div class="actions save-bar">

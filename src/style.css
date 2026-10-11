@@ -92,6 +92,14 @@ small { color: var(--muted); }
 .categories button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; font-size: 13px; }
 .categories button.active { background: color-mix(in srgb, var(--accent) 35%, var(--card)); border-color: var(--accent-text); box-shadow: inset 0 0 0 1px var(--accent-text); color: #fff; }
 .categories button.active .cat-icon { color: #fff; }
+/* предложение отметить запись как оплату регулярного платежа */
+.rec-links { display: flex; flex-direction: column; gap: 6px; padding-top: 10px; }
+.rec-links > small { font-size: 13px; }
+.rec-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.rec-chips button { display: flex; align-items: baseline; gap: 8px; padding: 9px 12px; font-size: 14px; }
+.rec-chips button small { font-size: 12px; }
+.rec-chips button.active { background: color-mix(in srgb, var(--accent) 35%, var(--card)); border-color: var(--accent-text); color: #fff; }
+.rec-chips button.active small { color: var(--text); }
 /* кнопка сохранения всегда на виду над нижним меню */
 .save-bar { position: sticky; bottom: calc(72px + env(safe-area-inset-bottom)); z-index: 2; margin-top: 6px; padding: 6px 0; background: var(--bg); }
 .save-bar .primary { padding: 14px; font-size: 16px; }
