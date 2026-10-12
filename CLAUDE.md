@@ -22,6 +22,11 @@ npm run icons   # PNG-иконки из public/logo.svg
 Деплой: пуш в `main` → `.github/workflows/deploy.yml` собирает с `BASE_PATH=/<repo>/` и публикует на Pages.
 Изменения `Code.gs` на GitHub не попадают в Google автоматически: код нужно вставить в редактор Apps Script и сделать
 «Управление развёртываниями → Изменить → Новая версия» (URL при этом не меняется).
+Делает это пользователь сам. Давать ему пошаговую инструкцию со ссылками: https://script.google.com/home (или таблица →
+Расширения → Apps Script); код — `pbcopy < apps-script/Code.gs` или https://raw.githubusercontent.com/Joker1796/family-budget/main/apps-script/Code.gs.
+Предупреждать: не «Новое развёртывание» — у него другой URL, придётся перенастраивать телефоны.
+
+«Подними стенд» = `npm run mock` + `npm run dev -- --port 5173 --strictPort` в фоне; сообщить адреса для мака и для телефона (`ipconfig getifaddr en0`).
 
 ## Устройство
 
