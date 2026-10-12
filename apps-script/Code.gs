@@ -1,7 +1,7 @@
 /**
  * Бэкенд семейного бюджета на Google Apps Script.
  *
- * Один эндпоинт: POST { secret, action: 'sync', ops: [{ tx } | { rec } | { cat }], since: <ms> }
+ * Один эндпоинт: POST { secret, action: 'sync', ops: [{ tx } | { rec } | { cat } | { acc } | { sav }], since: <ms> }
  *   - применяет пришедшие изменения (upsert по id, удаление — флаг deleted)
  *   - возвращает все записи, изменённые на сервере после `since`
  *
@@ -23,6 +23,16 @@ const TABLES = {
   cat: {
     sheet: 'Categories',
     columns: ['id', 'name', 'type', 'icon', 'order', 'createdAt', 'updatedAt', 'deleted'],
+  },
+  // копилки: счета и история операций по ним; с тратами и доходами не связаны
+  acc: {
+    sheet: 'Accounts',
+    columns: ['id', 'name', 'icon', 'order', 'createdAt', 'updatedAt', 'deleted'],
+  },
+  sav: {
+    sheet: 'Savings',
+    // kind: in — пополнение, out — снятие, set — уточнили остаток (amount = новый остаток)
+    columns: ['id', 'date', 'accountId', 'kind', 'amount', 'comment', 'createdAt', 'updatedAt', 'deleted'],
   },
 };
 const NUMBER_COLUMNS = ['amount', 'createdAt', 'updatedAt', 'everyMonths', 'day', 'order'];
@@ -159,7 +169,7 @@ function sync(ops, since) {
       result[key + 's'] = items.filter(it => it.updatedAt > since);
       items.forEach(it => { result.serverTime = Math.max(result.serverTime, it.updatedAt); });
     });
-    return result; // { ok, txs, recs, cats, serverTime }
+    return result; // { ok, txs, recs, cats, accs, savs, serverTime }
   } finally {
     lock.releaseLock();
   }
@@ -169,6 +179,7 @@ function toRow(key, item, header, updatedAt) {
   const clean = Object.assign({}, item, { updatedAt: updatedAt, createdAt: Number(item.createdAt) || Date.now() });
   if (key === 'tx' || key === 'cat') clean.type = item.type === 'income' ? 'income' : 'expense';
   if (key === 'rec') clean.kind = item.kind === 'variable' ? 'variable' : 'fixed';
+  if (key === 'sav') clean.kind = ['in', 'out', 'set'].indexOf(item.kind) !== -1 ? item.kind : 'set';
   return header.map(name => {
     const v = clean[name];
     if (NUMBER_COLUMNS.indexOf(name) !== -1) return Number(v) || 0;

@@ -1,7 +1,7 @@
 <script setup>
 // Иконки интерфейса — тот же набор Lucide, что и у категорий
 import {
-  Plus, List, CalendarDays, ChartPie, SlidersHorizontal, RefreshCw,
+  Plus, List, CalendarDays, ChartPie, PiggyBank, Settings, RefreshCw,
   ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2,
 } from 'lucide-vue-next'
 
@@ -12,7 +12,8 @@ const icons = {
   list: List,
   calendar: CalendarDays,
   chart: ChartPie,
-  settings: SlidersHorizontal,
+  savings: PiggyBank,
+  settings: Settings,
   sync: RefreshCw,
   left: ChevronLeft,
   right: ChevronRight,

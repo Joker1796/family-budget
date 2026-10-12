@@ -2,11 +2,15 @@ import { reactive, computed, watch } from 'vue'
 import { callApi } from './api'
 
 // Синхронизируемые сущности: ключ op'а на сервере → поле в state.
-// tx — траты/доходы, rec — регулярные платежи, cat — категории.
-const ENTITIES = { tx: 'txs', rec: 'recs', cat: 'cats' }
+// tx — траты/доходы, rec — регулярные платежи, cat — категории,
+// acc — счета копилок, sav — операции по ним (с тратами не связаны).
+const ENTITIES = { tx: 'txs', rec: 'recs', cat: 'cats', acc: 'accs', sav: 'savs' }
 
 const SCHEMA = 4 // при смене формата локальных данных — перекачиваем всё с сервера
-const KEYS = { settings: 'fb.settings', txs: 'fb.txs', recs: 'fb.recs', cats: 'fb.cats', queue: 'fb.queue', since: 'fb.since' }
+const KEYS = {
+  settings: 'fb.settings', txs: 'fb.txs', recs: 'fb.recs', cats: 'fb.cats', accs: 'fb.accs', savs: 'fb.savs',
+  queue: 'fb.queue', since: 'fb.since',
+}
 
 function load(key, fallback) {
   try {
@@ -20,7 +24,7 @@ function load(key, fallback) {
 // Формат поменялся — выбрасываем кэш записей и перекачиваем его с сервера.
 // Очередь неотправленных изменений не трогаем.
 if (load('fb.schema', 1) !== SCHEMA) {
-  for (const key of ['fb.categories', KEYS.txs, KEYS.recs, KEYS.cats, KEYS.since]) localStorage.removeItem(key)
+  for (const key of ['fb.categories', KEYS.txs, KEYS.recs, KEYS.cats, KEYS.accs, KEYS.savs, KEYS.since]) localStorage.removeItem(key)
   localStorage.setItem('fb.schema', SCHEMA)
 }
 
@@ -30,6 +34,8 @@ export const state = reactive({
   txs: load(KEYS.txs, {}),
   recs: load(KEYS.recs, {}),
   cats: load(KEYS.cats, {}),
+  accs: load(KEYS.accs, {}),
+  savs: load(KEYS.savs, {}),
   queue: load(KEYS.queue, []), // ещё не отправленные изменения: [{ tx }, { rec }, ...]
   since: load(KEYS.since, 0), // серверная метка последней синхронизации
   syncing: false,
@@ -52,6 +58,12 @@ export const transactions = computed(() =>
 export const recurring = computed(() => alive(state.recs).sort((a, b) => a.day - b.day || a.name.localeCompare(b.name)))
 
 export const categories = computed(() => alive(state.cats).sort((a, b) => a.order - b.order))
+
+export const accounts = computed(() => alive(state.accs).sort((a, b) => a.order - b.order))
+
+export const savings = computed(() =>
+  alive(state.savs).sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt),
+)
 
 export const categoriesOf = (type) => categories.value.filter((c) => c.type === type)
 
@@ -120,17 +132,40 @@ export function saveCategory(fields) {
 
 export const deleteCategory = (id) => saveCategory({ id, deleted: true })
 
-/** Меняет местами категорию с соседней в пределах её типа. */
-export function moveCategory(id, delta) {
-  const list = categoriesOf(state.cats[id].type)
-  const i = list.findIndex((c) => c.id === id)
+/** Меняет элемент списка местами с соседним (по полю order). */
+function swapOrder(kind, list, id, delta) {
+  const i = list.findIndex((x) => x.id === id)
   const other = list[i + delta]
   if (!other) return
   const a = list[i].order
-  put('cat', {}, { id, order: other.order })
-  put('cat', {}, { id: other.id, order: a })
+  put(kind, {}, { id, order: other.order })
+  put(kind, {}, { id: other.id, order: a })
   sync()
 }
+
+/** Меняет местами категорию с соседней в пределах её типа. */
+export const moveCategory = (id, delta) => swapOrder('cat', categoriesOf(state.cats[id].type), id, delta)
+
+const nextOrder = (map) => Math.max(-1, ...Object.values(map).map((x) => x.order)) + 1
+
+// счёт копилки; история ссылается на него по id, так что переименование ничего не каскадит
+export function saveAccount(fields) {
+  const acc = put('acc', { order: nextOrder(state.accs), icon: 'piggy-bank' }, fields)
+  sync()
+  return acc
+}
+
+export const deleteAccount = (id) => saveAccount({ id, deleted: true })
+
+export const moveAccount = (id, delta) => swapOrder('acc', accounts.value, id, delta)
+
+export function saveSaving(fields) {
+  const sav = put('sav', { comment: '' }, fields)
+  sync()
+  return sav
+}
+
+export const deleteSaving = (id) => saveSaving({ id, deleted: true })
 
 let pendingResync = false
 
@@ -143,12 +178,12 @@ export async function sync({ full = false } = {}) {
   state.syncing = true
   const sent = state.queue.length
   try {
-    const res = await callApi(state.settings, {
-      action: 'sync',
-      ops: state.queue.slice(0, sent),
-      since: full ? 0 : state.since,
-    })
+    const ops = state.queue.slice(0, sent)
+    const res = await callApi(state.settings, { action: 'sync', ops, since: full ? 0 : state.since })
     state.queue.splice(0, sent)
+    // старый Code.gs молча пропускает незнакомые сущности — не теряем их, а держим в очереди
+    const unknown = ops.filter((op) => !(`${Object.keys(op)[0]}s` in res))
+    state.queue.unshift(...unknown)
     // пока ждали ответ, запись могли поменять локально — её версия новее
     const stillPending = new Set(state.queue.map((op) => Object.entries(op).map(([k, v]) => `${k}:${v.id}`)[0]))
     for (const [kind, field] of Object.entries(ENTITIES)) {
@@ -157,7 +192,7 @@ export async function sync({ full = false } = {}) {
       }
     }
     state.since = res.serverTime
-    state.error = ''
+    state.error = unknown.length ? 'На сервере старая версия Code.gs — обновите развёртывание Apps Script' : ''
     state.lastSyncAt = Date.now()
   } catch (e) {
     state.error = e.message

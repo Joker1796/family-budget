@@ -7,6 +7,7 @@ import CatIcon from './CatIcon.vue'
 import Segmented from './Segmented.vue'
 import DateField from './DateField.vue'
 import AmountInput from './AmountInput.vue'
+import { localRef } from '../local'
 
 const TYPES = [
   { value: 'expense', label: 'Расход' },
@@ -19,7 +20,9 @@ const emit = defineEmits(['saved', 'cancel'])
 
 const init = props.tx ?? props.draft ?? {}
 
-const type = ref(init.type ?? 'expense')
+// новая запись открывается на том типе, что выбирали в прошлый раз
+const lastType = localRef('fb.addType', 'expense', ['expense', 'income'])
+const type = ref(init.type ?? lastType.value)
 const amountStr = ref(init.amount ? String(init.amount) : '')
 const category = ref(init.category ?? '')
 const comment = ref(init.comment ?? '')
@@ -54,6 +57,7 @@ onMounted(() => !props.tx && amountInput.value?.focus())
 
 function setType(t) {
   type.value = t
+  if (!props.tx) lastType.value = t
   category.value = ''
   linked.value = ''
 }

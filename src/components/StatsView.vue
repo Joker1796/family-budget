@@ -7,6 +7,7 @@ import MonthPicker from './MonthPicker.vue'
 import Segmented from './Segmented.vue'
 import Donut from './Donut.vue'
 import { useSlide } from '../motion'
+import { localRef } from '../local'
 
 const TYPES = [
   { value: 'expense', label: 'Расходы' },
@@ -14,7 +15,7 @@ const TYPES = [
 ]
 
 const month = defineModel('month', { type: String, required: true })
-const type = ref('expense')
+const type = localRef('fb.statsType', 'expense', ['expense', 'income']) // последняя открытая вкладка
 const picked = ref('') // выбранный сегмент диаграммы доходов
 
 const slide = useSlide(month)
