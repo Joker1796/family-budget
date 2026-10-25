@@ -4,11 +4,13 @@ import { state, sync } from '../store'
 import { theme, THEMES } from '../theme'
 import CategoriesView from './CategoriesView.vue'
 import Segmented from './Segmented.vue'
+import { useBack } from '../back'
 
 const emit = defineEmits(['done'])
 const form = reactive({ ...state.settings })
 const status = ref('')
 const showCategories = ref(false)
+useBack(showCategories, () => (showCategories.value = false))
 
 async function save() {
   form.apiUrl = form.apiUrl.trim()

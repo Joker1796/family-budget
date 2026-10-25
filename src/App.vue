@@ -10,6 +10,7 @@ import SettingsView from './components/SettingsView.vue'
 import SavingsView from './components/SavingsView.vue'
 import Reminders from './components/Reminders.vue'
 import Icon from './components/Icon.vue'
+import { useBack } from './back'
 
 const tab = ref(isConfigured.value ? 'add' : 'settings')
 const month = ref(isoMonth())
@@ -19,7 +20,7 @@ const draft = ref(null) // предзаполненная новая трата 
 let returnTab = 'list' // куда вернуться после редактирования/оплаты
 
 const tabs = [
-  { id: 'list', icon: 'list', label: 'Траты' },
+  { id: 'list', icon: 'list', label: 'История' },
   { id: 'payments', icon: 'calendar', label: 'Платежи' },
   { id: 'add', icon: 'plus', label: 'Добавить' },
   { id: 'stats', icon: 'chart', label: 'Итоги' },
@@ -34,10 +35,16 @@ watch(tab, (to, from) => {
 })
 
 function openTab(id) {
+  settingsFrom.value = id === 'settings' && tab.value !== 'settings' ? tab.value : null
   editing.value = null
   draft.value = null
   tab.value = id
 }
+
+// жест «назад»: из настроек — на вкладку, с которой в них пришли; из редактирования/оплаты — туда, откуда открыли
+const settingsFrom = ref(null)
+useBack(() => tab.value === 'settings' && settingsFrom.value, () => openTab(settingsFrom.value))
+useBack(() => tab.value === 'add' && (editing.value || draft.value), closeEditor)
 
 function edit(tx) {
   returnTab = tab.value

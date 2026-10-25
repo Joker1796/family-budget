@@ -2,6 +2,7 @@
 // Пополнение и снятие меняют остаток, «Остаток» задаёт его заново (например, после начисления процентов).
 import { computed } from 'vue'
 import { state, savings } from './store'
+import { isoDate } from './format'
 
 export const KINDS = [
   { value: 'in', label: 'Пополнение' },
@@ -31,3 +32,18 @@ export const ledger = computed(() => {
 
 // ищем и среди удалённых счетов, чтобы в истории не пропадали названия
 export const accountOf = (id) => state.accs[id] ?? { name: 'Счёт удалён', icon: '' }
+
+// заблокирован: снять нельзя бессрочно или до даты; в сам день lockedUntil деньги уже доступны
+export const isLocked = (a) => Boolean(a.locked) && (!a.lockedUntil || a.lockedUntil > isoDate())
+
+// «до 15 мар 2027 · ещё 4 мес.» / «заблокирован бессрочно»
+export function lockLabel(a) {
+  if (!a.lockedUntil) return 'заблокирован бессрочно'
+  const [y, m, d] = a.lockedUntil.split('-').map(Number)
+  const until = new Date(y, m - 1, d)
+  const now = new Date()
+  const days = Math.ceil((until - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 86_400_000)
+  const months = (y - now.getFullYear()) * 12 + (m - 1 - now.getMonth()) - (d < now.getDate() ? 1 : 0)
+  const left = months >= 1 ? `ещё ${months} мес.` : `ещё ${days} дн.`
+  return `до ${until.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }).replace(/\.? г\./, '').replace('.', '')} · ${left}`
+}

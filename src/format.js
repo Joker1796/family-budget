@@ -27,7 +27,9 @@ export function dayLabel(date) {
   if (date === isoDate(today)) return 'Сегодня'
   if (date === isoDate(yesterday)) return 'Вчера'
   const [y, m, d] = date.split('-').map(Number)
-  return new Date(y, m - 1, d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' })
+  // год — только если не текущий (например, срок вклада)
+  const year = y !== today.getFullYear() ? { year: 'numeric' } : {}
+  return new Date(y, m - 1, d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short', ...year }).replace(' г.', '')
 }
 
 export function parseAmount(str) {

@@ -1,14 +1,16 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { accounts, savings } from '../store'
-import { ledger, accountOf } from '../savings'
+import { ledger, accountOf, isLocked, lockLabel } from '../savings'
 import { money, dayLabel } from '../format'
 import CatIcon from './CatIcon.vue'
+import Icon from './Icon.vue'
 import Segmented from './Segmented.vue'
 import Select from './Select.vue'
 import SavingForm from './SavingForm.vue'
 import AccountsView from './AccountsView.vue'
 import { useSlide } from '../motion'
+import { useBack } from '../back'
 
 const TABS = [
   { value: 'accounts', label: 'Счета' },
@@ -19,9 +21,18 @@ const tab = ref('accounts')
 const tabSlide = useSlide(tab) // accounts < history — история «правее»
 // null — список; 'accounts' — редактор счетов; { accountId } — новая операция; { item } — правка операции
 const screen = ref(null)
+useBack(screen, () => (screen.value = null))
 const filter = ref('') // история по одному счёту
 
-const total = computed(() => accounts.value.reduce((s, a) => s + (ledger.value.balance[a.id] ?? 0), 0))
+const sumOf = (list) => list.reduce((s, a) => s + (ledger.value.balance[a.id] ?? 0), 0)
+const total = computed(() => sumOf(accounts.value))
+const locked = computed(() => sumOf(accounts.value.filter(isLocked)))
+
+// у заблокированного счёта важнее срок, чем дата последнего обновления
+function sub(a) {
+  if (isLocked(a) && ledger.value.last[a.id]) return lockLabel(a)
+  return ledger.value.last[a.id] ? `обновлено ${dayLabel(ledger.value.last[a.id]).toLowerCase()}` : 'нажмите, чтобы внести остаток'
+}
 
 const filterOptions = computed(() => [
   { value: '', label: 'Все счета' },
@@ -65,6 +76,14 @@ const screenKey = computed(() => (screen.value === 'accounts' ? 'accounts' : scr
       <div class="summary single">
         <div><small>Всего на счетах</small><b>{{ money(total) }}</b></div>
       </div>
+      <Transition name="expand">
+        <div v-if="locked" class="expand"><div>
+          <div class="summary pair locked-split">
+            <div><small>Можно снять</small><b>{{ money(total - locked) }}</b></div>
+            <div><small>Заблокировано</small><b>{{ money(locked) }}</b></div>
+          </div>
+        </div></div>
+      </Transition>
 
       <p v-if="!accounts.length" class="empty">Счетов пока нет.<br />Добавьте вклады и накопительные счета, чтобы следить за остатками.</p>
 
@@ -72,8 +91,8 @@ const screenKey = computed(() => (screen.value === 'accounts' ? 'accounts' : scr
       <button v-for="a in accounts" :key="a.id" class="tx" @click="screen = { accountId: a.id }">
         <CatIcon :icon="a.icon" tile />
         <span class="info">
-          <span>{{ a.name }}</span>
-          <small>{{ ledger.last[a.id] ? `обновлено ${dayLabel(ledger.last[a.id]).toLowerCase()}` : 'нажмите, чтобы внести остаток' }}</small>
+          <span>{{ a.name }}<Icon v-if="isLocked(a)" name="lock" :size="14" class="lock-mark" /></span>
+          <small>{{ sub(a) }}</small>
         </span>
         <b>{{ money(ledger.balance[a.id] ?? 0) }}</b>
       </button>

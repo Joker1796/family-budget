@@ -7,11 +7,13 @@ import MonthPicker from './MonthPicker.vue'
 import RecurringForm from './RecurringForm.vue'
 import CatIcon from './CatIcon.vue'
 import { useSlide } from '../motion'
+import { useBack } from '../back'
 
 const emit = defineEmits(['pay', 'edit'])
 const month = ref(isoMonth())
 const slide = useSlide(month)
 const editing = ref(undefined) // undefined — список, null — новый платёж, объект — редактирование
+useBack(() => editing.value !== undefined, () => (editing.value = undefined))
 
 const list = computed(() => occurrences(month.value))
 const sum = computed(() => summarize(list.value))

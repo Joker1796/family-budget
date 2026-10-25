@@ -150,7 +150,7 @@ const nextOrder = (map) => Math.max(-1, ...Object.values(map).map((x) => x.order
 
 // счёт копилки; история ссылается на него по id, так что переименование ничего не каскадит
 export function saveAccount(fields) {
-  const acc = put('acc', { order: nextOrder(state.accs), icon: 'piggy-bank' }, fields)
+  const acc = put('acc', { order: nextOrder(state.accs), icon: 'piggy-bank', locked: false, lockedUntil: '' }, fields)
   sync()
   return acc
 }
@@ -168,6 +168,8 @@ export function saveSaving(fields) {
 export const deleteSaving = (id) => saveSaving({ id, deleted: true })
 
 let pendingResync = false
+// поле, которого нет в предыдущей версии Code.gs
+const NEW_FIELDS = { acc: 'locked' }
 
 export async function sync({ full = false } = {}) {
   if (!isConfigured.value) return
@@ -182,7 +184,12 @@ export async function sync({ full = false } = {}) {
     const res = await callApi(state.settings, { action: 'sync', ops, since: full ? 0 : state.since })
     state.queue.splice(0, sent)
     // старый Code.gs молча пропускает незнакомые сущности — не теряем их, а держим в очереди
-    const unknown = ops.filter((op) => !(`${Object.keys(op)[0]}s` in res))
+    // а новые колонки старой сущности он не пишет — запись вернулась без них
+    const echo = (kind, id) => res[`${kind}s`]?.find((it) => it.id === id)
+    const unknown = ops.filter((op) => {
+      const [kind, item] = Object.entries(op)[0]
+      return !(`${kind}s` in res) || (NEW_FIELDS[kind] && echo(kind, item.id) && !(NEW_FIELDS[kind] in echo(kind, item.id)))
+    })
     state.queue.unshift(...unknown)
     // пока ждали ответ, запись могли поменять локально — её версия новее
     const stillPending = new Set(state.queue.map((op) => Object.entries(op).map(([k, v]) => `${k}:${v.id}`)[0]))

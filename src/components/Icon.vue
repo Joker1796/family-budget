@@ -2,7 +2,7 @@
 // Иконки интерфейса — тот же набор Lucide, что и у категорий
 import {
   Plus, List, CalendarDays, ChartPie, PiggyBank, Settings, RefreshCw,
-  ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2,
+  ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, Lock, LockOpen,
 } from 'lucide-vue-next'
 
 defineProps({ name: { type: String, required: true }, size: { type: Number, default: 24 } })
@@ -20,6 +20,8 @@ const icons = {
   up: ChevronUp,
   down: ChevronDown,
   trash: Trash2,
+  lock: Lock,
+  unlock: LockOpen,
 }
 </script>
 

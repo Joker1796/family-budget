@@ -59,7 +59,7 @@ function save() {
 }
 
 function remove() {
-  if (!confirm(`Удалить «${r.name}»? Уже внесённые оплаты останутся в тратах.`)) return
+  if (!confirm(`Удалить «${r.name}»? Уже внесённые оплаты останутся в истории.`)) return
   deleteRecurring(r.id)
   emit('done')
 }

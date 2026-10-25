@@ -56,7 +56,12 @@
   transition: background-color var(--normal) var(--ease), border-color var(--normal) var(--ease), color var(--normal) var(--ease) !important;
 }
 
-* { box-sizing: border-box; border-radius: 0; }
+/* экран закрыт жестом «назад» — iOS уже показал сдвиг, своя анимация не нужна (src/back.js) */
+.instant *, .instant *::before, .instant *::after { transition: none !important; animation: none !important; }
+
+/* manipulation — без зума по двойному тапу (и без задержки клика); щипок по-прежнему работает */
+* { box-sizing: border-box; border-radius: 0; touch-action: manipulation; }
+html { touch-action: manipulation; }
 body { margin: 0; }
 button, input { font: inherit; color: inherit; }
 button {
@@ -286,6 +291,16 @@ button.link { border: none; background: none; padding: 0 0 0 8px; color: var(--a
 .icon-grid button.active { border-color: var(--accent-text); color: var(--accent-text); background: var(--card-hover); }
 .cat-row button { flex: none; display: flex; align-items: center; padding: 0 10px; }
 .cat-row button.wide { padding: 0 14px; }
+.cat-row button.locked { color: var(--accent-text); }
+.cat-row button.active { border-color: var(--accent-text); }
+.lock-panel { border: 1px solid var(--border); background: var(--card); padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+.lock-panel > small, .lock-panel .field { font-size: 13px; color: var(--muted); }
+.lock-panel .field { display: flex; flex-direction: column; gap: 6px; }
+.lock-panel .hint { display: block; margin-top: 6px; }
+
+/* копилки: итог делится на свободные и заблокированные */
+.summary.locked-split { margin-top: -6px; }
+.lock-mark { color: var(--muted); margin-left: 6px; vertical-align: -1px; }
 
 /* ---------- анимации ---------- */
 

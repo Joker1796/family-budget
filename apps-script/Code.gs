@@ -27,7 +27,8 @@ const TABLES = {
   // копилки: счета и история операций по ним; с тратами и доходами не связаны
   acc: {
     sheet: 'Accounts',
-    columns: ['id', 'name', 'icon', 'order', 'createdAt', 'updatedAt', 'deleted'],
+    // locked — нельзя снять в любой момент; lockedUntil — до какой даты (YYYY-MM-DD), пусто — бессрочно
+    columns: ['id', 'name', 'icon', 'order', 'createdAt', 'updatedAt', 'deleted', 'locked', 'lockedUntil'],
   },
   sav: {
     sheet: 'Savings',
@@ -36,9 +37,9 @@ const TABLES = {
   },
 };
 const NUMBER_COLUMNS = ['amount', 'createdAt', 'updatedAt', 'everyMonths', 'day', 'order'];
-const BOOL_COLUMNS = ['deleted'];
+const BOOL_COLUMNS = ['deleted', 'locked'];
 // если таблица всё же превратила строку в дату — вернём её в исходном виде
-const DATE_FORMATS = { date: 'yyyy-MM-dd', startMonth: 'yyyy-MM', period: 'yyyy-MM' };
+const DATE_FORMATS = { date: 'yyyy-MM-dd', startMonth: 'yyyy-MM', period: 'yyyy-MM', lockedUntil: 'yyyy-MM-dd' };
 
 // стартовый набор категорий, к которым пришли в таблице за 2025 год
 const DEFAULT_CATEGORIES = [
