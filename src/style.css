@@ -138,6 +138,9 @@ small { color: var(--muted); }
 .rec-links { display: flex; flex-direction: column; gap: 6px; padding-top: 10px; }
 .rec-links > small { font-size: 13px; }
 .rec-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+/* ипотека: сколько из суммы по графику, остальное — досрочно */
+.mortgage-split { margin-bottom: 8px; }
+.mortgage-split b { padding: 12px 0; font-size: 16px; color: var(--text); }
 .rec-chips button { display: flex; align-items: baseline; gap: 8px; padding: 9px 12px; font-size: 14px; }
 .rec-chips button small { font-size: 12px; }
 .rec-chips button.active { background: var(--selected); border-color: var(--accent-text); color: var(--on-selected); }

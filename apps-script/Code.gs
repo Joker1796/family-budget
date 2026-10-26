@@ -14,10 +14,12 @@
 const TABLES = {
   tx: {
     sheet: 'Transactions',
-    columns: ['id', 'date', 'type', 'amount', 'category', 'author', 'comment', 'createdAt', 'updatedAt', 'deleted', 'recurringId', 'period'],
+    // extra — сколько из суммы ушло в досрочное погашение (оплата ипотеки)
+    columns: ['id', 'date', 'type', 'amount', 'category', 'author', 'comment', 'createdAt', 'updatedAt', 'deleted', 'recurringId', 'period', 'extra'],
   },
   rec: {
     sheet: 'Recurring',
+    // kind: fixed, variable или mortgage (amount — сколько всего платить в месяц, по графику + досрочно)
     columns: ['id', 'name', 'category', 'kind', 'amount', 'everyMonths', 'day', 'startMonth', 'createdAt', 'updatedAt', 'deleted'],
   },
   cat: {
@@ -36,7 +38,7 @@ const TABLES = {
     columns: ['id', 'date', 'accountId', 'kind', 'amount', 'comment', 'createdAt', 'updatedAt', 'deleted'],
   },
 };
-const NUMBER_COLUMNS = ['amount', 'createdAt', 'updatedAt', 'everyMonths', 'day', 'order'];
+const NUMBER_COLUMNS = ['amount', 'createdAt', 'updatedAt', 'everyMonths', 'day', 'order', 'extra'];
 const BOOL_COLUMNS = ['deleted', 'locked'];
 // если таблица всё же превратила строку в дату — вернём её в исходном виде
 const DATE_FORMATS = { date: 'yyyy-MM-dd', startMonth: 'yyyy-MM', period: 'yyyy-MM', lockedUntil: 'yyyy-MM-dd' };
@@ -179,7 +181,7 @@ function sync(ops, since) {
 function toRow(key, item, header, updatedAt) {
   const clean = Object.assign({}, item, { updatedAt: updatedAt, createdAt: Number(item.createdAt) || Date.now() });
   if (key === 'tx' || key === 'cat') clean.type = item.type === 'income' ? 'income' : 'expense';
-  if (key === 'rec') clean.kind = item.kind === 'variable' ? 'variable' : 'fixed';
+  if (key === 'rec') clean.kind = ['variable', 'mortgage'].indexOf(item.kind) !== -1 ? item.kind : 'fixed';
   if (key === 'sav') clean.kind = ['in', 'out', 'set'].indexOf(item.kind) !== -1 ? item.kind : 'set';
   return header.map(name => {
     const v = clean[name];

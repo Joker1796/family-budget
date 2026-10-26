@@ -8,9 +8,15 @@ import DateField from './DateField.vue'
 import AmountInput from './AmountInput.vue'
 
 const KINDS = [
-  { value: 'fixed', label: 'Фиксированная' },
+  { value: 'fixed', label: 'Постоянная' },
   { value: 'variable', label: 'Плавающая' },
+  { value: 'mortgage', label: 'Ипотека' },
 ]
+const AMOUNT_LABELS = {
+  fixed: 'Сумма',
+  variable: 'Примерная сумма (пока нет истории оплат)',
+  mortgage: 'Сколько всего платить в месяц',
+}
 
 const props = defineProps({ rec: { type: Object, default: null } })
 const emit = defineEmits(['done'])
@@ -41,7 +47,7 @@ function save() {
   const day = Math.round(Number(form.day))
   const everyMonths = form.period || Math.round(Number(form.every))
   if (!form.name.trim()) return (error.value = 'Введите название')
-  if (!amount) return (error.value = form.kind === 'fixed' ? 'Введите сумму' : 'Введите примерную сумму')
+  if (!amount) return (error.value = form.kind === 'variable' ? 'Введите примерную сумму' : 'Введите сумму')
   if (!(day >= 1 && day <= 31)) return (error.value = 'День — от 1 до 31')
   if (!(everyMonths >= 1 && everyMonths <= 120)) return (error.value = 'Период — от 1 до 120 месяцев')
   if (!form.startMonth) return (error.value = 'Укажите месяц')
@@ -74,9 +80,14 @@ function remove() {
     </div>
 
     <Segmented v-model="form.kind" :options="KINDS" />
-    <label>{{ form.kind === 'fixed' ? 'Сумма' : 'Примерная сумма (пока нет истории оплат)' }}
+    <label>{{ AMOUNT_LABELS[form.kind] }}
       <AmountInput v-model="form.amount" placeholder="0 ₽" />
     </label>
+    <Transition name="expand">
+      <div v-if="form.kind === 'mortgage'" class="expand"><div>
+        <p class="hint">Платёж по графику + досрочное погашение. При оплате укажете платёж по графику, остальное посчитается как досрочка.</p>
+      </div></div>
+    </Transition>
 
     <div class="field">Периодичность
       <Select v-model="form.period" :options="PERIODS" />

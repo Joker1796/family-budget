@@ -1,7 +1,9 @@
 // Логика регулярных платежей: когда платёж наступает, оплачен ли он и сколько ожидать.
 //
-// Платёж (rec): { id, name, category, kind: 'fixed'|'variable', amount, everyMonths, day, startMonth: 'YYYY-MM' }
+// Платёж (rec): { id, name, category, kind: 'fixed'|'variable'|'mortgage', amount, everyMonths, day, startMonth: 'YYYY-MM' }
 // Оплата — обычная трата с recurringId и period ('YYYY-MM' — за какой месяц платёж).
+// Ипотека (mortgage): amount — сколько всего платить в месяц; в оплате extra — сколько из этого досрочно,
+// остальное — платёж по графику (после досрочки с уменьшением платежа он снижается).
 import { computed } from 'vue'
 import { transactions, recurring } from './store'
 import { isoDate, isoMonth, shiftMonth } from './format'
@@ -53,9 +55,24 @@ export const paymentsOf = (rec) => paymentsByRec.value[rec.id] ?? []
 
 /** Сколько ожидать: фиксированная сумма или медиана последних оплат (пока их нет — оценка из шаблона). */
 export function estimate(rec) {
-  if (rec.kind === 'fixed') return rec.amount
+  if (rec.kind !== 'variable') return rec.amount
   const last = paymentsOf(rec).slice(0, HISTORY).map((t) => t.amount)
   return last.length ? Math.round(median(last)) : rec.amount
+}
+
+/** Сколько из оплаты ушло по графику. */
+export const scheduledPart = (tx) => tx.amount - (Number(tx.extra) || 0)
+
+/** Ипотека: последний платёж по графику, насколько он снизился с первой оплаты, сколько внесено досрочно. */
+export function mortgageSummary(rec) {
+  const list = paymentsOf(rec)
+  if (!list.length) return null
+  const now = scheduledPart(list[0])
+  return {
+    scheduled: now,
+    drop: scheduledPart(list[list.length - 1]) - now,
+    extraTotal: list.reduce((s, t) => s + (Number(t.extra) || 0), 0),
+  }
 }
 
 /** Все платежи, выпадающие на месяц, со статусом оплаты. */

@@ -168,8 +168,12 @@ export function saveSaving(fields) {
 export const deleteSaving = (id) => saveSaving({ id, deleted: true })
 
 let pendingResync = false
-// поле, которого нет в предыдущей версии Code.gs
-const NEW_FIELDS = { acc: 'locked' }
+// чего не знают прошлые версии Code.gs: запись вернулась без новой колонки или с другим kind
+const OUTDATED = {
+  acc: (item, echo) => !('locked' in echo),
+  tx: (item, echo) => Boolean(item.extra) && !('extra' in echo),
+  rec: (item, echo) => item.kind !== echo.kind,
+}
 
 export async function sync({ full = false } = {}) {
   if (!isConfigured.value) return
@@ -188,7 +192,8 @@ export async function sync({ full = false } = {}) {
     const echo = (kind, id) => res[`${kind}s`]?.find((it) => it.id === id)
     const unknown = ops.filter((op) => {
       const [kind, item] = Object.entries(op)[0]
-      return !(`${kind}s` in res) || (NEW_FIELDS[kind] && echo(kind, item.id) && !(NEW_FIELDS[kind] in echo(kind, item.id)))
+      const back = echo(kind, item.id)
+      return !(`${kind}s` in res) || Boolean(back && OUTDATED[kind]?.(item, back))
     })
     state.queue.unshift(...unknown)
     // пока ждали ответ, запись могли поменять локально — её версия новее

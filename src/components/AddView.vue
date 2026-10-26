@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { categoriesOf, recurring, saveTx, deleteTx } from '../store'
-import { estimate } from '../recurring'
+import { estimate, paymentsOf, scheduledPart } from '../recurring'
 import { isoDate, parseAmount, money } from '../format'
 import CatIcon from './CatIcon.vue'
 import Segmented from './Segmented.vue'
@@ -29,6 +29,8 @@ const comment = ref(init.comment ?? '')
 const date = ref(init.date ?? isoDate())
 // регулярный платёж, оплатой которого считается запись (для draft он уже задан)
 const linked = ref(props.draft ? '' : (init.recurringId ?? ''))
+// ипотека: сколько из суммы по графику (остальное — досрочно)
+const scheduledStr = ref(props.tx?.recurringId ? String(scheduledPart(props.tx)) : '')
 const flash = ref('')
 const saved = ref(null) // последняя сохранённая запись — для «Отменить»
 const justSaved = ref(false) // кнопка на секунду показывает «Сохранено»
@@ -42,6 +44,20 @@ const payments = computed(() =>
   props.draft || type.value !== 'expense' ? [] : recurring.value.filter((r) => r.category === category.value),
 )
 const linkedRec = computed(() => payments.value.find((r) => r.id === linked.value))
+const mortgage = computed(() => {
+  const id = props.draft ? props.draft.recurringId : linked.value
+  const rec = recurring.value.find((r) => r.id === id)
+  return rec?.kind === 'mortgage' ? rec : null
+})
+const scheduled = computed(() => parseAmount(scheduledStr.value))
+const extra = computed(() => (mortgage.value ? Math.max(0, amount.value - scheduled.value) : 0))
+
+// по умолчанию — прошлый платёж по графику
+function prefillScheduled() {
+  const last = mortgage.value && paymentsOf(mortgage.value).find((t) => t.id !== props.tx?.id)
+  if (last && !scheduledStr.value) scheduledStr.value = String(scheduledPart(last))
+}
+prefillScheduled()
 const ready = computed(() => Boolean(amount.value && category.value))
 
 // подсказка на кнопке: чего не хватает или что именно сохранится
@@ -77,6 +93,7 @@ function link(rec) {
   linked.value = rec.id
   if (!amount.value) amountStr.value = String(estimate(rec))
   if (!comment.value.trim()) comment.value = rec.name
+  prefillScheduled()
 }
 
 function unlink() {
@@ -100,7 +117,9 @@ function save() {
     return showFlash('Введите сумму')
   }
   if (!category.value) return showFlash('Выберите категорию')
-  const fields = { type: type.value, amount: amount.value, category: category.value, comment: comment.value.trim(), date: date.value }
+  if (mortgage.value && !scheduled.value) return showFlash('Введите платёж по графику')
+  if (mortgage.value && scheduled.value > amount.value) return showFlash('Платёж по графику больше всей суммы')
+  const fields = { type: type.value, amount: amount.value, category: category.value, comment: comment.value.trim(), date: date.value, extra: extra.value }
   if (props.tx) fields.id = props.tx.id
   if (props.draft) Object.assign(fields, { recurringId: props.draft.recurringId, period: props.draft.period })
   else Object.assign(fields, { recurringId: linked.value, period: linked.value ? date.value.slice(0, 7) : '' })
@@ -114,6 +133,7 @@ function save() {
   comment.value = ''
   category.value = ''
   linked.value = ''
+  scheduledStr.value = ''
   amountInput.value?.focus()
   emit('saved')
 }
@@ -136,6 +156,15 @@ function remove() {
     <Segmented v-else :model-value="type" :options="TYPES" @update:model-value="setType" />
 
     <AmountInput ref="amountInput" v-model="amountStr" class="amount" :class="type" enterkeyhint="done" placeholder="0 ₽" @input="justSaved = false" @keyup.enter="save" />
+
+    <Transition name="expand">
+      <div v-if="mortgage" class="expand"><div>
+        <div class="row mortgage-split">
+          <label>Из них по графику<AmountInput v-model="scheduledStr" placeholder="0 ₽" @keyup.enter="save" /></label>
+          <div class="field">Досрочно<b>{{ money(extra) }}</b></div>
+        </div>
+      </div></div>
+    </Transition>
 
     <div class="row">
       <input v-model="comment" placeholder="Комментарий" @keyup.enter="save" />

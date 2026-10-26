@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { recurring, categoryIcon } from '../store'
-import { occurrences, summarize, horizon, periodLabel, estimate, dueLabel } from '../recurring'
+import { occurrences, summarize, horizon, periodLabel, estimate, dueLabel, mortgageSummary } from '../recurring'
 import { money, isoMonth, shiftMonth, monthLabel, dayLabel } from '../format'
 import MonthPicker from './MonthPicker.vue'
 import RecurringForm from './RecurringForm.vue'
@@ -20,6 +20,9 @@ const sum = computed(() => summarize(list.value))
 const isCurrent = computed(() => month.value === isoMonth())
 const next = computed(() => summarize(occurrences(shiftMonth(isoMonth(), 1))))
 const later = computed(() => horizon())
+const mortgages = computed(() =>
+  recurring.value.filter((r) => r.kind === 'mortgage').map((rec) => ({ rec, sum: mortgageSummary(rec) })).filter((m) => m.sum),
+)
 
 const STATUS = { paid: '✓', overdue: '!', soon: '⏳', upcoming: '' }
 
@@ -81,6 +84,15 @@ function open(o) {
 
     </div>
     </Transition>
+
+    <template v-for="m in mortgages" :key="m.rec.id">
+      <h3>{{ m.rec.name }}</h3>
+      <div class="summary">
+        <div><small>По графику</small><b>{{ money(m.sum.scheduled) }}</b></div>
+        <div><small>Снизился на</small><b class="income">{{ money(m.sum.drop) }}</b></div>
+        <div><small>Досрочно</small><b>{{ money(m.sum.extraTotal) }}</b></div>
+      </div>
+    </template>
 
     <h3>Все регулярные платежи</h3>
     <TransitionGroup name="list" tag="div" class="tg">
