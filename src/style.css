@@ -226,12 +226,14 @@ button.link { border: none; background: none; padding: 0 0 0 8px; color: var(--a
 .reminders:empty { margin-bottom: 0; }
 .reminders button { display: flex; justify-content: space-between; gap: 8px; text-align: left; border-left: 3px solid var(--accent-text); font-size: 14px; padding-top: 9px; padding-bottom: 9px; }
 .reminders button.overdue { border-left-color: var(--expense); }
-.tx.occ .status { color: var(--accent-text); margin-right: 4px; }
+.tx.occ .status { color: var(--accent-text); margin-right: 4px; vertical-align: -3px; }
 .tx.occ.overdue .status, .tx.occ.overdue small { color: var(--expense); }
 .tx.occ.paid b, .tx.occ.paid .info > span { color: var(--muted); }
 .tx.static { cursor: default; }
 .forecast { width: 100%; display: flex; justify-content: space-between; margin-top: 16px; border-left: 3px solid var(--accent); }
 .add-btn { width: 100%; margin-top: 12px; color: var(--accent-text); border-style: dashed; }
+.add-row { display: flex; gap: 6px; }
+.add-row .add-btn { flex: 1; }
 .draft-title { font-size: 17px; font-weight: 600; text-align: center; margin: 4px 0 0; }
 .rec-mark { color: var(--muted); font-weight: 400; margin-right: 6px; }
 .hint.sub { margin: -6px 0 12px; }

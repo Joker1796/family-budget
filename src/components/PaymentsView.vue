@@ -1,19 +1,27 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { recurring, categoryIcon } from '../store'
 import { occurrences, summarize, horizon, periodLabel, estimate, dueLabel, mortgageSummary } from '../recurring'
 import { money, isoMonth, shiftMonth, monthLabel, dayLabel } from '../format'
 import MonthPicker from './MonthPicker.vue'
 import RecurringForm from './RecurringForm.vue'
 import CatIcon from './CatIcon.vue'
+import Icon from './Icon.vue'
 import { useSlide } from '../motion'
 import { useBack } from '../back'
 
 const emit = defineEmits(['pay', 'edit'])
 const month = ref(isoMonth())
 const slide = useSlide(month)
+const managing = ref(false) // список всех платежей для правки
 const editing = ref(undefined) // undefined — список, null — новый платёж, объект — редактирование
+useBack(managing, () => (managing.value = false))
 useBack(() => editing.value !== undefined, () => (editing.value = undefined))
+
+// чем глубже экран, тем «правее»: месяц → список платежей → форма
+const level = computed(() => (editing.value !== undefined ? 2 : managing.value ? 1 : 0))
+const screenSlide = ref('slide-left')
+watch(level, (to, from) => (screenSlide.value = to > from ? 'slide-left' : 'slide-right'))
 
 const list = computed(() => occurrences(month.value))
 const sum = computed(() => summarize(list.value))
@@ -24,7 +32,7 @@ const mortgages = computed(() =>
   recurring.value.filter((r) => r.kind === 'mortgage').map((rec) => ({ rec, sum: mortgageSummary(rec) })).filter((m) => m.sum),
 )
 
-const STATUS = { paid: '✓', overdue: '!', soon: '⏳', upcoming: '' }
+const STATUS = { paid: 'check', overdue: 'alert', soon: 'hourglass' } // иконка статуса; у upcoming её нет
 
 function open(o) {
   if (o.paid) emit('edit', o.paid)
@@ -33,10 +41,22 @@ function open(o) {
 </script>
 
 <template>
-  <Transition :name="editing !== undefined ? 'slide-left' : 'slide-right'" mode="out-in">
+  <Transition :name="screenSlide" mode="out-in">
   <RecurringForm v-if="editing !== undefined" :key="editing?.id || 'new'" :rec="editing" @done="editing = undefined" />
 
-  <section v-else>
+  <section v-else-if="managing" key="manage" class="manage">
+    <button class="back" @click="managing = false"><Icon name="left" :size="20" />Платежи</button>
+    <TransitionGroup name="list" tag="div" class="tg">
+    <button v-for="r in recurring" :key="r.id" class="tx" @click="editing = r">
+      <CatIcon :icon="categoryIcon(r.category, 'expense')" tile />
+      <span class="info"><span>{{ r.name }}</span><small>{{ periodLabel(r) }}{{ r.kind === 'variable' ? ' · плавающая' : '' }}</small></span>
+      <b>{{ r.kind === 'variable' ? '~' : '' }}{{ money(estimate(r)) }}</b>
+    </button>
+    </TransitionGroup>
+    <button class="add-btn" @click="editing = null">+ Добавить платёж</button>
+  </section>
+
+  <section v-else key="month">
     <MonthPicker v-model="month" />
 
     <Transition :name="slide" mode="out-in">
@@ -61,7 +81,7 @@ function open(o) {
         </small>
       </span>
       <b>
-        <span class="status">{{ STATUS[o.status] }}</span>
+        <Icon v-if="STATUS[o.status]" :name="STATUS[o.status]" :size="18" class="status" />
         {{ !o.paid && o.rec.kind === 'variable' ? '~' : '' }}{{ money(o.amount) }}
       </b>
     </button>
@@ -94,15 +114,10 @@ function open(o) {
       </div>
     </template>
 
-    <h3>Все регулярные платежи</h3>
-    <TransitionGroup name="list" tag="div" class="tg">
-    <button v-for="r in recurring" :key="r.id" class="tx" @click="editing = r">
-      <CatIcon :icon="categoryIcon(r.category, 'expense')" tile />
-      <span class="info"><span>{{ r.name }}</span><small>{{ periodLabel(r) }}{{ r.kind === 'variable' ? ' · плавающая' : '' }}</small></span>
-      <b>{{ r.kind === 'variable' ? '~' : '' }}{{ money(estimate(r)) }}</b>
-    </button>
-    </TransitionGroup>
-    <button class="add-btn" @click="editing = null">+ Добавить платёж</button>
+    <div class="add-row">
+      <button class="add-btn" @click="editing = null">+ Добавить платёж</button>
+      <button v-if="recurring.length" class="add-btn" @click="managing = true">Изменить платежи</button>
+    </div>
   </section>
   </Transition>
 </template>
