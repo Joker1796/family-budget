@@ -212,6 +212,10 @@ button.link { border: none; background: none; padding: 0 0 0 8px; color: var(--a
 .legend-row .with-icon { flex: 1; min-width: 0; flex-wrap: wrap; }
 .legend-row .with-icon small { flex-basis: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .legend-sum { white-space: nowrap; }
+.legend-chevron { flex: none; color: var(--muted); transition: transform var(--fast) var(--ease); }
+.legend-chevron.open { transform: rotate(180deg); }
+/* категории внутри «Остального»: отступ на ширину квадратика + зазор */
+.legend-sub { padding-left: 26px; padding-right: 30px; background: var(--card-hover); }
 .swatch { flex: none; width: 12px; height: 12px; }
 
 /* настройки */

@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { transactions, categoryIcon } from '../store'
 import CatIcon from './CatIcon.vue'
+import Icon from './Icon.vue'
 import { money } from '../format'
 import MonthPicker from './MonthPicker.vue'
 import Segmented from './Segmented.vue'
@@ -42,6 +43,8 @@ const obligatory = computed(() =>
 // в круге больше шести сегментов не различить — хвост сворачиваем в «Остальное».
 // Цвет по порядку слотов: --series-1…6 (палитра проверена на различимость, в т.ч. при дальтонизме)
 const SLOTS = 6
+// мелкие доли из «Остального» не показываем как «0%»
+const pct = (share) => (share > 0 && share < 0.005 ? '<1%' : Math.round(share * 100) + '%')
 const incomeSlices = computed(() => {
   const rows = income.value.rows
   const head = rows.length > SLOTS ? rows.slice(0, SLOTS - 1) : rows
@@ -71,7 +74,7 @@ const incomeSlices = computed(() => {
           <div v-for="r in byCategory.rows" :key="r.name" class="bar-row">
             <div class="bar-label">
               <span class="with-icon"><CatIcon :icon="categoryIcon(r.name, 'expense')" :size="18" />{{ r.name }}</span>
-              <span>{{ money(r.sum) }} <small>{{ Math.round(r.share * 100) }}%</small></span>
+              <span>{{ money(r.sum) }} <small>{{ pct(r.share) }}</small></span>
             </div>
             <div class="bar"><div :style="{ width: r.share * 100 + '%' }" /></div>
           </div>
@@ -84,17 +87,29 @@ const incomeSlices = computed(() => {
           <h2>Доходы <span class="income">{{ money(income.total) }}</span></h2>
           <Donut v-model:selected="picked" :rows="incomeSlices" :total="income.total" />
           <!-- легенда и она же таблица значений; тап по строке выделяет сегмент -->
-          <button
-            v-for="s in incomeSlices" :key="s.name" class="legend-row" :class="{ active: picked === s.name, dim: picked && picked !== s.name }"
-            @click="picked = picked === s.name ? '' : s.name"
-          >
-            <span class="swatch" :style="{ background: s.color }" />
-            <span class="with-icon">
-              <CatIcon v-if="!s.rest" :icon="categoryIcon(s.name, 'income')" :size="18" />{{ s.name }}
-              <small v-if="s.rest">{{ s.rest.map((r) => r.name).join(', ') }}</small>
-            </span>
-            <span class="legend-sum">{{ money(s.sum) }} <small>{{ Math.round(s.share * 100) }}%</small></span>
-          </button>
+          <template v-for="s in incomeSlices" :key="s.name">
+            <button
+              class="legend-row" :class="{ active: picked === s.name, dim: picked && picked !== s.name }"
+              @click="picked = picked === s.name ? '' : s.name"
+            >
+              <span class="swatch" :style="{ background: s.color }" />
+              <span class="with-icon">
+                <CatIcon v-if="!s.rest" :icon="categoryIcon(s.name, 'income')" :size="18" />{{ s.name }}
+                <small v-if="s.rest && picked !== s.name">{{ s.rest.map((r) => r.name).join(', ') }}</small>
+              </span>
+              <span class="legend-sum">{{ money(s.sum) }} <small>{{ pct(s.share) }}</small></span>
+              <Icon v-if="s.rest" name="down" :size="16" class="legend-chevron" :class="{ open: picked === s.name }" />
+            </button>
+            <!-- «Остальное» на кольце — один сегмент, а в списке раскрывается по категориям -->
+            <Transition name="expand">
+              <div v-if="s.rest && picked === s.name" class="expand"><div>
+                <div v-for="r in s.rest" :key="r.name" class="legend-row legend-sub">
+                  <span class="with-icon"><CatIcon :icon="categoryIcon(r.name, 'income')" :size="18" />{{ r.name }}</span>
+                  <span class="legend-sum">{{ money(r.sum) }} <small>{{ pct(r.share) }}</small></span>
+                </div>
+              </div></div>
+            </Transition>
+          </template>
         </template>
       </div>
       </Transition>
