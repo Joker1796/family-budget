@@ -24,7 +24,8 @@ const TABLES = {
   },
   cat: {
     sheet: 'Categories',
-    columns: ['id', 'name', 'type', 'icon', 'order', 'createdAt', 'updatedAt', 'deleted'],
+    // parent — id родительской категории (подтипы дохода, один уровень); пусто — сама по себе
+    columns: ['id', 'name', 'type', 'icon', 'order', 'createdAt', 'updatedAt', 'deleted', 'parent'],
   },
   // копилки: счета и история операций по ним; с тратами и доходами не связаны
   acc: {

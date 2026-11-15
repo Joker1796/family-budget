@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { transactions, categoryIcon } from '../store'
+import { transactions, categoryIcon, categoryGroup, isSubcategory, groupIcon } from '../store'
 import CatIcon from './CatIcon.vue'
 import Icon from './Icon.vue'
 import { money } from '../format'
@@ -35,7 +35,25 @@ function groupBy(type, key) {
 }
 
 const byCategory = computed(() => groupBy('expense', 'category'))
-const income = computed(() => groupBy('income', 'category'))
+// доходы складываем по источникам: подтипы — в родителя, а сами они уходят в subs
+const income = computed(() => {
+  const { total, rows } = groupBy('income', 'category')
+  const groups = {}
+  for (const r of rows) {
+    const name = categoryGroup(r.name, 'income')
+    const g = (groups[name] ??= { name, sum: 0, subs: [] })
+    g.sum += r.sum
+    g.subs.push(r)
+  }
+  const list = Object.values(groups).map((g) => ({
+    name: g.name,
+    sum: g.sum,
+    share: total ? g.sum / total : 0,
+    // источник с подтипами раскрывается, даже если в месяце был только один из них
+    subs: g.subs.some((r) => isSubcategory(r.name, 'income')) ? g.subs : null,
+  }))
+  return { total, rows: list.sort((a, b) => b.sum - a.sum) }
+})
 const obligatory = computed(() =>
   monthTxs.value.filter((t) => t.type === 'expense' && t.recurringId).reduce((s, t) => s + t.amount, 0),
 )
@@ -94,16 +112,16 @@ const incomeSlices = computed(() => {
             >
               <span class="swatch" :style="{ background: s.color }" />
               <span class="with-icon">
-                <CatIcon v-if="!s.rest" :icon="categoryIcon(s.name, 'income')" :size="18" />{{ s.name }}
-                <small v-if="s.rest && picked !== s.name">{{ s.rest.map((r) => r.name).join(', ') }}</small>
+                <CatIcon v-if="!s.rest" :icon="groupIcon(s.name, 'income')" :size="18" />{{ s.name }}
+                <small v-if="(s.rest || s.subs) && picked !== s.name">{{ (s.rest || s.subs).map((r) => r.name).join(', ') }}</small>
               </span>
               <span class="legend-sum">{{ money(s.sum) }} <small>{{ pct(s.share) }}</small></span>
-              <Icon v-if="s.rest" name="down" :size="16" class="legend-chevron" :class="{ open: picked === s.name }" />
+              <Icon v-if="s.rest || s.subs" name="down" :size="16" class="legend-chevron" :class="{ open: picked === s.name }" />
             </button>
-            <!-- «Остальное» на кольце — один сегмент, а в списке раскрывается по категориям -->
+            <!-- «Остальное» и источник с подтипами на кольце — один сегмент, а в списке раскрываются -->
             <Transition name="expand">
-              <div v-if="s.rest && picked === s.name" class="expand"><div>
-                <div v-for="r in s.rest" :key="r.name" class="legend-row legend-sub">
+              <div v-if="(s.rest || s.subs) && picked === s.name" class="expand"><div>
+                <div v-for="r in s.rest || s.subs" :key="r.name" class="legend-row legend-sub">
                   <span class="with-icon"><CatIcon :icon="categoryIcon(r.name, 'income')" :size="18" />{{ r.name }}</span>
                   <span class="legend-sum">{{ money(r.sum) }} <small>{{ pct(r.share) }}</small></span>
                 </div>

@@ -65,13 +65,52 @@ export const savings = computed(() =>
   alive(state.savs).sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt),
 )
 
-export const categoriesOf = (type) => categories.value.filter((c) => c.type === type)
+// родитель категории (подтипы дохода, один уровень); у удалённого или вложенного родителя категория — сама по себе
+const parentOf = (c) => {
+  const p = c.parent && state.cats[c.parent]
+  return p && !p.deleted && !p.parent ? p : null
+}
 
-// ищем и среди удалённых категорий, чтобы у старых записей не пропадали иконки
-export const categoryIcon = (name, type) =>
-  Object.values(state.cats).find((c) => c.name === name && c.type === type && !c.deleted)?.icon ||
-  Object.values(state.cats).find((c) => c.name === name && c.type === type)?.icon ||
-  ''
+// порядок дерева: верхний уровень по order, сразу за каждой категорией — её подтипы
+export const categoriesOf = (type) => {
+  const list = categories.value.filter((c) => c.type === type)
+  return list.filter((c) => !parentOf(c)).flatMap((top) => [top, ...list.filter((c) => parentOf(c)?.id === top.id)])
+}
+
+/** Категории, которые можно указать родителем для cat: верхний уровень того же типа, без самой cat. */
+export const parentOptions = (cat) =>
+  categoriesOf(cat.type).filter((c) => c.id !== cat.id && !parentOf(c))
+
+export const hasChildren = (id) => categories.value.some((c) => parentOf(c)?.id === id)
+
+/** Подтипы родителя в порядке дерева. */
+export const childrenOf = (id) => categories.value.filter((c) => parentOf(c)?.id === id)
+
+/** Подтип-наследник: тёзка родителя, к нему по названию относятся записи, внесённые до разделения. */
+export const isNamesake = (c) => parentOf(c)?.name === c.name
+
+// записи ссылаются на категорию по названию; у родителя с подтипами есть тёзка-наследник —
+// записи «Зарплата» принадлежат ему, а не обёртке. Ищем и среди удалённых, чтобы не терять иконки старых записей
+function findCategory(name, type) {
+  const all = Object.values(state.cats).filter((c) => c.name === name && c.type === type)
+  const alive = all.filter((c) => !c.deleted)
+  return alive.find((c) => !hasChildren(c.id)) || alive[0] || all[0]
+}
+
+/** Название группы для статистики: имя родителя, если категория — подтип. */
+export function categoryGroup(name, type) {
+  const cat = findCategory(name, type)
+  return (cat && parentOf(cat)?.name) || name
+}
+
+/** Записи с этим названием относятся к подтипу (их надо показывать в раскрытии группы). */
+export const isSubcategory = (name, type) => Boolean(parentOf(findCategory(name, type) || {}))
+
+export const categoryIcon = (name, type) => findCategory(name, type)?.icon || ''
+
+/** Иконка строки-группы в Итогах: у источника с подтипами — иконка самой обёртки, а не тёзки. */
+export const groupIcon = (name, type) =>
+  categories.value.find((c) => c.name === name && c.type === type && hasChildren(c.id))?.icon || categoryIcon(name, type)
 
 // crypto.randomUUID есть только в secure context; при отладке по http://192.168... его нет
 const uuid = () =>
@@ -114,9 +153,10 @@ export const deleteRecurring = (id) => saveRecurring({ id, deleted: true })
 export function saveCategory(fields) {
   const prev = fields.id ? state.cats[fields.id] : null
   const order = prev ? prev.order : Math.max(-1, ...Object.values(state.cats).map((c) => c.order)) + 1
-  const cat = put('cat', { order, icon: 'tag' }, fields)
-  // траты и платежи ссылаются на категорию по названию — переименовываем и в них
-  if (prev && !fields.deleted && prev.name !== cat.name) {
+  const cat = put('cat', { order, icon: 'tag', parent: '' }, fields)
+  // траты и платежи ссылаются на категорию по названию — переименовываем и в них.
+  // У обёртки с подтипами своих записей нет: записи с её названием принадлежат тёзке-наследнику
+  if (prev && !fields.deleted && prev.name !== cat.name && !hasChildren(cat.id)) {
     for (const tx of Object.values(state.txs)) {
       if (tx.category === prev.name && tx.type === prev.type) put('tx', {}, { id: tx.id, category: cat.name })
     }
@@ -130,7 +170,42 @@ export function saveCategory(fields) {
   return cat
 }
 
-export const deleteCategory = (id) => saveCategory({ id, deleted: true })
+// у родителя остался один тёзка-наследник — разделение больше не нужно: убираем тёзку,
+// родитель снова обычная категория, и записи с этим названием по-прежнему его
+function collapseIfOnlyNamesake(parentId) {
+  const kids = childrenOf(parentId)
+  if (kids.length && kids.every(isNamesake)) for (const k of kids) put('cat', {}, { id: k.id, deleted: true })
+}
+
+/**
+ * Делает категорию подтипом parentId ('' — самостоятельной).
+ * Первый подтип превращает родителя в обёртку: рядом появляется тёзка-наследник, к которому
+ * по названию переходят все записи родителя (вносить записи в саму обёртку больше нельзя).
+ */
+export function setCategoryParent(id, parentId) {
+  const cat = state.cats[id]
+  const oldParent = parentOf(cat)?.id
+  if (parentId && !hasChildren(parentId)) {
+    const p = state.cats[parentId]
+    // перед первым подтипом, чтобы наследник шёл в списке первым
+    put('cat', {}, { name: p.name, type: p.type, icon: p.icon, parent: p.id, order: cat.order - 0.5 })
+  }
+  put('cat', {}, { id, parent: parentId })
+  if (oldParent && oldParent !== parentId) collapseIfOnlyNamesake(oldParent)
+  sync()
+}
+
+// подтипы удалённой категории становятся самостоятельными
+export function deleteCategory(id) {
+  const oldParent = parentOf(state.cats[id])?.id
+  for (const c of Object.values(state.cats)) if (c.parent === id && !c.deleted) put('cat', {}, { id: c.id, parent: '' })
+  // тёзку удалённой обёртки не плодим: он и так носит её имя и записи
+  saveCategory({ id, deleted: true })
+  if (oldParent) {
+    collapseIfOnlyNamesake(oldParent)
+    sync()
+  }
+}
 
 /** Меняет элемент списка местами с соседним (по полю order). */
 function swapOrder(kind, list, id, delta) {
@@ -143,8 +218,14 @@ function swapOrder(kind, list, id, delta) {
   sync()
 }
 
-/** Меняет местами категорию с соседней в пределах её типа. */
-export const moveCategory = (id, delta) => swapOrder('cat', categoriesOf(state.cats[id].type), id, delta)
+/** Соседи по дереву: категории верхнего уровня или подтипы того же родителя. */
+export const siblingsOf = (id) => {
+  const pid = parentOf(state.cats[id])?.id
+  return categoriesOf(state.cats[id].type).filter((c) => parentOf(c)?.id === pid)
+}
+
+/** Меняет местами категорию с соседней в пределах её уровня. */
+export const moveCategory = (id, delta) => swapOrder('cat', siblingsOf(id), id, delta)
 
 const nextOrder = (map) => Math.max(-1, ...Object.values(map).map((x) => x.order)) + 1
 
@@ -173,6 +254,7 @@ const OUTDATED = {
   acc: (item, echo) => !('locked' in echo),
   tx: (item, echo) => Boolean(item.extra) && !('extra' in echo),
   rec: (item, echo) => item.kind !== echo.kind,
+  cat: (item, echo) => Boolean(item.parent) && !('parent' in echo),
 }
 
 export async function sync({ full = false } = {}) {

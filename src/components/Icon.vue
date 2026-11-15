@@ -3,7 +3,7 @@
 import {
   Plus, List, CalendarDays, ChartPie, PiggyBank, Settings, RefreshCw,
   ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, Lock, LockOpen,
-  Check, CircleAlert, Hourglass,
+  Check, CircleAlert, Hourglass, CornerDownRight,
 } from 'lucide-vue-next'
 
 defineProps({ name: { type: String, required: true }, size: { type: Number, default: 24 } })
@@ -26,6 +26,7 @@ const icons = {
   check: Check,
   alert: CircleAlert,
   hourglass: Hourglass,
+  sub: CornerDownRight,
 }
 </script>
 

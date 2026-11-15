@@ -130,6 +130,11 @@ small { color: var(--muted); }
 .amount.income { color: var(--income); }
 .row { display: flex; gap: 8px; }
 .row > .date-field { flex: none; min-width: 140px; }
+/* подтипы дохода на экране добавления — рамкой под названием источника */
+.cat-sections { display: flex; flex-direction: column; gap: 6px; }
+.cat-group { border: 1px solid var(--border); padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.cat-group-title { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.cat-group-title .cat-icon { color: var(--muted); }
 .categories { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .categories button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; font-size: 13px; }
 .categories button.active { background: var(--selected); border-color: var(--accent-text); box-shadow: inset 0 0 0 1px var(--accent-text); color: var(--on-selected); }
@@ -302,6 +307,11 @@ button.link { border: none; background: none; padding: 0 0 0 8px; color: var(--a
 .cat-row button.wide { padding: 0 14px; }
 .cat-row button.locked { color: var(--accent-text); }
 .cat-row button.active { border-color: var(--accent-text); }
+/* подтип дохода: сдвинут вправо под своего родителя */
+.cat-item.child { padding-left: 24px; position: relative; }
+.cat-sub-mark { position: absolute; left: 2px; top: 13px; color: var(--muted); }
+.cat-panel { display: flex; flex-direction: column; gap: 8px; }
+.nest-panel { border: 1px solid var(--border); background: var(--card); padding: 10px; display: flex; flex-direction: column; gap: 6px; }
 .lock-panel { border: 1px solid var(--border); background: var(--card); padding: 10px; display: flex; flex-direction: column; gap: 10px; }
 .lock-panel > small, .lock-panel .field { font-size: 13px; color: var(--muted); }
 .lock-panel .field { display: flex; flex-direction: column; gap: 6px; }

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { categoriesOf, recurring, saveTx, deleteTx } from '../store'
+import { categoriesOf, hasChildren, childrenOf, recurring, saveTx, deleteTx } from '../store'
 import { estimate, paymentsOf, scheduledPart } from '../recurring'
 import { isoDate, parseAmount, money } from '../format'
 import CatIcon from './CatIcon.vue'
@@ -37,7 +37,18 @@ const justSaved = ref(false) // кнопка на секунду показыв�
 const amountInput = ref(null)
 let flashTimer, savedTimer
 
-const categories = computed(() => categoriesOf(type.value))
+// в обёртку с подтипами записи не вносятся — кнопки только у подтипов, сгруппированных под ней;
+// подряд идущие обычные категории — общей сеткой
+const sections = computed(() => {
+  const out = []
+  for (const c of categoriesOf(type.value)) {
+    if (c.parent && !hasChildren(c.id) && out.some((s) => s.group?.id === c.parent)) continue
+    if (hasChildren(c.id)) out.push({ key: c.id, group: c, items: childrenOf(c.id) })
+    else if (out.at(-1)?.group === null) out.at(-1).items.push(c)
+    else out.push({ key: 'grid-' + c.id, group: null, items: [c] })
+  }
+  return out
+})
 const amount = computed(() => parseAmount(amountStr.value))
 // у выбранной категории есть регулярные платежи — предлагаем отметить запись как оплату
 const payments = computed(() =>
@@ -181,10 +192,15 @@ function remove() {
     </p>
 
     <Transition name="fade" mode="out-in">
-      <div :key="type" class="categories">
-        <button v-for="c in categories" :key="c.id" :class="{ active: category === c.name }" @click="pick(c.name)">
-          <CatIcon :icon="c.icon" :size="32" />{{ c.name }}
-        </button>
+      <div :key="type" class="cat-sections">
+        <div v-for="s in sections" :key="s.key" :class="{ 'cat-group': s.group }">
+          <div v-if="s.group" class="cat-group-title"><CatIcon :icon="s.group.icon" :size="16" />{{ s.group.name }}</div>
+          <div class="categories">
+            <button v-for="c in s.items" :key="c.id" :class="{ active: category === c.name }" @click="pick(c.name)">
+              <CatIcon :icon="c.icon" :size="32" />{{ c.name }}
+            </button>
+          </div>
+        </div>
       </div>
     </Transition>
 

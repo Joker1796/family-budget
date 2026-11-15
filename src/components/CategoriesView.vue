@@ -1,10 +1,11 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { categoriesOf, saveCategory, deleteCategory, moveCategory, transactions } from '../store'
+import { categoriesOf, saveCategory, deleteCategory, moveCategory, siblingsOf, parentOptions, hasChildren, isNamesake, setCategoryParent, transactions } from '../store'
 import Icon from './Icon.vue'
 import CatIcon from './CatIcon.vue'
 import IconPicker from './IconPicker.vue'
 import Segmented from './Segmented.vue'
+import Select from './Select.vue'
 
 const TYPES = [
   { value: 'expense', label: 'Расходы' },
@@ -24,6 +25,21 @@ watch(type, (t) => {
 })
 
 const togglePicker = (id) => (picking.value = picking.value === id ? null : id)
+
+// подтип — категория дохода с живым родителем; в Итогах она складывается в родителя
+const isChild = (c) => Boolean(c.parent) && !list.value.every((x) => x.id !== c.parent)
+const position = (c) => {
+  const sibs = siblingsOf(c.id)
+  return { first: sibs[0]?.id === c.id, last: sibs.at(-1)?.id === c.id }
+}
+const parentChoices = (c) => [
+  { value: '', label: 'Сама по себе' },
+  ...parentOptions(c).map((p) => ({ value: p.id, label: p.name, icon: p.icon })),
+]
+function setParent(c, parent) {
+  if (parent !== (isChild(c) ? c.parent : '')) setCategoryParent(c.id, parent)
+  picking.value = null
+}
 
 function setIcon(cat, icon) {
   if (icon !== cat.icon) saveCategory({ id: cat.id, icon })
@@ -46,7 +62,8 @@ function rename(cat, e) {
 }
 
 function remove(cat) {
-  if (confirm(`Скрыть категорию «${cat.name}»? Старые записи с ней останутся.`)) deleteCategory(cat.id)
+  const note = hasChildren(cat.id) ? ' Её подтипы станут самостоятельными.' : ''
+  if (confirm(`Скрыть категорию «${cat.name}»? Старые записи с ней останутся.${note}`)) deleteCategory(cat.id)
 }
 
 function add() {
@@ -66,19 +83,35 @@ function add() {
 
     <!-- при перестановке строки плавно меняются местами -->
     <TransitionGroup :key="type" name="list" tag="div" class="cat-list">
-      <div v-for="(c, i) in list" :key="c.id" class="cat-item">
+      <div v-for="c in list" :key="c.id" class="cat-item" :class="{ child: isChild(c) }">
         <div class="cat-row">
+          <Icon v-if="isChild(c)" name="sub" :size="18" class="cat-sub-mark" />
           <button class="icon-btn" :class="{ active: picking === c.id }" aria-label="Сменить иконку" @click="togglePicker(c.id)">
             <CatIcon :icon="c.icon" :size="22" />
           </button>
           <input :value="c.name" @change="rename(c, $event)" />
-          <button :disabled="i === 0" aria-label="Выше" @click="moveCategory(c.id, -1)"><Icon name="up" :size="20" /></button>
-          <button :disabled="i === list.length - 1" aria-label="Ниже" @click="moveCategory(c.id, 1)"><Icon name="down" :size="20" /></button>
+          <button :disabled="position(c).first" aria-label="Выше" @click="moveCategory(c.id, -1)"><Icon name="up" :size="20" /></button>
+          <button :disabled="position(c).last" aria-label="Ниже" @click="moveCategory(c.id, 1)"><Icon name="down" :size="20" /></button>
           <button class="danger" aria-label="Удалить" @click="remove(c)"><Icon name="trash" :size="20" /></button>
         </div>
+        <!-- тап по иконке: у дохода сверху «Входит в» (подтип источника), ниже — выбор иконки -->
         <Transition name="expand">
           <div v-if="picking === c.id" class="expand">
-            <div><IconPicker :model-value="c.icon" @update:model-value="setIcon(c, $event)" /></div>
+            <div class="cat-panel">
+              <div v-if="type === 'income'" class="nest-panel">
+                <p v-if="hasChildren(c.id)" class="hint">
+                  «{{ c.name }}» — источник с подтипами: записи вносятся только в подтипы, сам он подтипом быть не может.
+                </p>
+                <p v-else-if="isNamesake(c)" class="hint">
+                  Наследник: к нему относятся записи «{{ c.name }}» до разделения. Исчезнет сам, когда других подтипов не останется.
+                </p>
+                <template v-else>
+                  <span class="hint">Входит в</span>
+                  <Select :model-value="isChild(c) ? c.parent : ''" :options="parentChoices(c)" @update:model-value="setParent(c, $event)" />
+                </template>
+              </div>
+              <IconPicker :model-value="c.icon" @update:model-value="setIcon(c, $event)" />
+            </div>
           </div>
         </Transition>
       </div>
@@ -97,5 +130,8 @@ function add() {
       </div>
     </Transition>
     <p class="hint">Нажмите на иконку, чтобы сменить её. Порядок здесь = порядок кнопок на экране добавления.</p>
+    <p v-if="type === 'income'" class="hint">
+      Там же, по тапу на иконку, доход можно сделать подтипом другого («Входит в»): в Итогах подтипы сложатся в один источник, а по тапу раскроются.
+    </p>
   </section>
 </template>

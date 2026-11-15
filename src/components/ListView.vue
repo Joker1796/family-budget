@@ -19,7 +19,8 @@ const keyOf = (t) => `${t.type}:${t.category}`
 const filterOptions = computed(() => {
   const opts = [{ value: '', label: 'Все категории' }]
   for (const type of ['expense', 'income']) {
-    const names = categories.value.filter((c) => c.type === type).map((c) => c.name)
+    // у источника с подтипами тёзка-наследник носит то же имя — в фильтре одна строка
+    const names = [...new Set(categories.value.filter((c) => c.type === type).map((c) => c.name))]
     for (const t of transactions.value) if (t.type === type && !names.includes(t.category)) names.push(t.category)
     for (const name of names) {
       opts.push({ value: `${type}:${name}`, label: type === 'income' ? `${name} (доход)` : name, icon: categoryIcon(name, type) || 'tag' })
