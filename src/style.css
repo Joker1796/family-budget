@@ -132,7 +132,8 @@ small { color: var(--muted); }
 .row > .date-field { flex: none; min-width: 140px; }
 /* подтипы дохода на экране добавления — рамкой под названием источника */
 .cat-sections { display: flex; flex-direction: column; gap: 6px; }
-.cat-group { border: 1px solid var(--border); padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+/* рамка выступает за сетку на свои отступы — кнопки внутри той же ширины, что и снаружи, столбцы совпадают */
+.cat-group { border: 1px solid var(--border); padding: 8px; margin: 0 -9px; display: flex; flex-direction: column; gap: 6px; }
 .cat-group-title { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
 .cat-group-title .cat-icon { color: var(--muted); }
 .categories { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
@@ -310,6 +311,10 @@ button.link { border: none; background: none; padding: 0 0 0 8px; color: var(--a
 /* подтип дохода: сдвинут вправо под своего родителя */
 .cat-item.child { padding-left: 24px; position: relative; }
 .cat-sub-mark { position: absolute; left: 2px; top: 13px; color: var(--muted); }
+/* тёзка-наследник: имя не правится (оно = имя источника), подпись объясняет, что это не дубль */
+.cat-name-fixed { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; padding: 4px 12px; border: 1px solid var(--border); background: var(--card); }
+.cat-name-fixed > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cat-name-fixed > small { font-size: 12px; line-height: 14px; }
 .cat-panel { display: flex; flex-direction: column; gap: 8px; }
 .nest-panel { border: 1px solid var(--border); background: var(--card); padding: 10px; display: flex; flex-direction: column; gap: 6px; }
 .lock-panel { border: 1px solid var(--border); background: var(--card); padding: 10px; display: flex; flex-direction: column; gap: 10px; }
@@ -346,6 +351,8 @@ button.link { border: none; background: none; padding: 0 0 0 8px; color: var(--a
 /* раскрытие блока по высоте: обёртка .expand > div */
 .expand { display: grid; grid-template-rows: 1fr; }
 .expand > div { overflow: hidden; min-height: 0; }
+/* обрезаем только на время анимации — иначе выпадашка внутри (например «Входит в») не вылезает за блок */
+.expand:not(.expand-enter-active):not(.expand-leave-active) > div { overflow: visible; }
 .expand-enter-active, .expand-leave-active { transition: grid-template-rows var(--normal) var(--ease), opacity var(--normal) var(--ease); }
 .expand-enter-from, .expand-leave-to { grid-template-rows: 0fr; opacity: 0; }
 

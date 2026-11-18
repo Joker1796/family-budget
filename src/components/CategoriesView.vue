@@ -89,7 +89,10 @@ function add() {
           <button class="icon-btn" :class="{ active: picking === c.id }" aria-label="Сменить иконку" @click="togglePicker(c.id)">
             <CatIcon :icon="c.icon" :size="22" />
           </button>
-          <input :value="c.name" @change="rename(c, $event)" />
+          <!-- тёзка носит имя источника — подпись вместо поля, чтобы строка не выглядела дублем;
+               если переименовать источник, тёзка перестанет быть тёзкой и получит обычное поле -->
+          <div v-if="isNamesake(c)" class="cat-name-fixed"><span>{{ c.name }}</span><small>без подтипа</small></div>
+          <input v-else :value="c.name" @change="rename(c, $event)" />
           <button :disabled="position(c).first" aria-label="Выше" @click="moveCategory(c.id, -1)"><Icon name="up" :size="20" /></button>
           <button :disabled="position(c).last" aria-label="Ниже" @click="moveCategory(c.id, 1)"><Icon name="down" :size="20" /></button>
           <button class="danger" aria-label="Удалить" @click="remove(c)"><Icon name="trash" :size="20" /></button>
